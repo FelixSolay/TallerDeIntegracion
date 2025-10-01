@@ -29,42 +29,44 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  constructor(private http: HttpClient) {}
+
   onSubmit() {
-    (async () => {    
-      const formData = {
-        mail: this.loginForm.value.mail,
-        password: this.loginForm.value.password
-      };
-    
-      try {
-        const response = await fetch('/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        });
-    
-        const result = await response.json();
-    
-        if(result.success) {
+    if (this.loginForm.invalid) {
+      this.popup = 'fail';
+      return;
+    }
+
+    const formData = {
+      mail: this.loginForm.value.mail || '',
+      password: this.loginForm.value.password || ''
+    };
+
+
+    this.http.post<any>('http://localhost:5000/api/clientes/login', formData).subscribe({
+      next: (result) => {
+        console.log("Respuesta del backend:", result);
+        if (result && result.success) {
           this.type = result.type;
           this.name = result.name;
           this.lastname = result.lastname;
           this.popup = 'success';
-          sessionStorage.setItem("username", this.name);
-          sessionStorage.setItem("userlastname", this.lastname);
-          sessionStorage.setItem("mail", formData.mail as string);
-          sessionStorage.setItem("isLoggedIn", "true");
-        } else if(result.success == false && result.error == "contraseñaIncorrecta"){
+          sessionStorage.setItem('username', this.name);
+          sessionStorage.setItem('userlastname', this.lastname);
+          sessionStorage.setItem('mail', formData.mail);
+          sessionStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('type', this.type);
+        } else if (result && result.success === false && result.error === 'contraseñaIncorrecta') {
           this.popup = 'contraseñaIncorrecta';
         } else {
           this.popup = 'fail';
         }
-      } catch (error) {
-        console.error('Error en el inicio de sesión:', error);
+      },
+      error: (err) => {
+        console.error('Error en el inicio de sesión:', err);
+        this.popup = 'fail';
       }
-    })();
+    });
   }
 
   close() {

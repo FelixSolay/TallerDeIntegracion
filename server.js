@@ -39,43 +39,62 @@ const clienteSchema = new mongoose.Schema({
   password: String
 });
 
-const Cliente = mongoose.model('Cliente', clienteSchema);
+const Cliente = mongoose.model('clientes', clienteSchema);
+
+// Definir esquema y modelo para admins (necesario antes de usar Admin)
+const adminSchema = new mongoose.Schema({
+  nombre: String,
+  dni: String,
+  password: String
+});
+
+const Admin = mongoose.model('admins', adminSchema);
 
 // Ruta /register corregida
 app.post('/api/clientes', async (req, res) => {
-  const { nombre, apellido, dni, mail, password1, password2 } = req.body;
+    let { nombre, apellido, dni, mail, password1, password2 } = req.body;
 
-  try {
-    const hashedPassword1 = hashPassword(password1);
-    const hashedPassword2 = hashPassword(password2);
+    // Trim and basic validation
+    nombre = nombre ? nombre.trim() : '';
+    apellido = apellido ? apellido.trim() : '';
+    dni = dni ? dni.trim() : '';
+    mail = mail ? mail.trim() : '';
 
-    // Verificar si ya existe el cliente
-    const user = await Cliente.findOne({ dni: dni });
+    if (!nombre || !apellido || !dni || !mail || !password1 || !password2) {
+        return res.status(400).json({ success: false, reason: "missingFields" });
+    }
 
-    if (!user) {
-      if (hashedPassword1 === hashedPassword2) {
-        if (validateEmail(mail)) {
-          await Cliente.create({
+    try {
+        // Check passwords before hashing
+        if (password1 !== password2) {
+            return res.json({ success: false, reason: "wrongPassword" });
+        }
+
+        if (!validateEmail(mail)) {
+            return res.json({ success: false, reason: "badEmail" });
+        }
+
+        // Verificar si ya existe el cliente por mail
+        const user = await Cliente.findOne({ mail: mail });
+
+        if (user) {
+            return res.json({ success: false, reason: "alreadyExists" });
+        }
+
+        const hashedPassword = hashPassword(password1);
+
+        await Cliente.create({
             nombre,
             apellido,
             dni,
             mail,
-            password: hashedPassword1
-          });
-          return res.json({ success: true, type: "cliente" });
-        } else {
-          return res.json({ success: false, reason: "badEmail" });
-        }
-      } else {
-        return res.json({ success: false, reason: "wrongPassword" });
-      }
-    } else {
-      return res.json({ success: false, reason: "alreadyExists" });
+            password: hashedPassword
+        });
+        return res.json({ success: true, type: "cliente" });
+    } catch (error) {
+        console.error('Error al registrar el usuario:', error);
+        res.status(500).json({ error: 'Error en el servidor' });
     }
-  } catch (error) {
-    console.error('Error al registrar el usuario:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
-  }
 });
 
 
@@ -107,10 +126,24 @@ app.post('/api/admins', async (req, res) => {
     }
 });
 
-
-
-
-
+app.post('/api/clientes/login', async (req, res) => {
+    const { mail, password } = req.body;
+    try {
+        const cliente = await Cliente.findOne({ mail: mail});
+        if (!cliente) {
+            return res.status(401).json({ success: false, error: 'mailIncorrecto' });
+        }
+        const hashedPassword = hashPassword(password);
+        if (cliente.password !== hashedPassword) {
+            return res.status(401).json({ success: false, error: 'contraseñaIncorrecta' });
+        }
+        //necesito que devuelva los datos del cliente en el response
+        res.status(200).json({ success: true, type: "cliente", name: cliente.nombre, lastname: cliente.apellido });
+    } catch (error) {
+        console.error('Error en login:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
 
 // Iniciar servidor
 app.listen(port, () => {
