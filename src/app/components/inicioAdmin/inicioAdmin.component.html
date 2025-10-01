@@ -1,0 +1,35 @@
+<div class="agregar" id="backgroudImage">
+    <app-button buttonClass="degrade" etiqueta="Agregar Producto" link="agregarProducto"></app-button>
+    <app-button buttonClass="degrade" etiqueta="Agregar Dije" link="agregarDije"></app-button>
+</div>
+<div class="agregar" id="productos" id="backgroudImage">
+    <div class="card">
+        
+        <div class="carrusel-wrapper">
+            <p class="arrow left" (click)="previous()"><</p>
+
+            <div class="carrusel-viewport">
+                <div class="carrusel-track" [ngStyle]="getTrackStyles()" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
+                    <div class="carrusel-item" *ngFor="let img of urlsImagenes; let i = index" [class.center]="i === currentIndex" [class.side]="i !== currentIndex">
+                        <img [src]="img" alt="Pulsera" />
+                    </div>
+                </div>
+            </div>
+
+            <p class="arrow right" (click)="next()">></p>
+        </div>
+
+        <p>Pulseras</p>
+    </div>
+
+
+    <div class="card">
+        <p>Pulseras</p>
+    </div>
+    <div class="card">
+        <p>Pulseras</p>
+    </div>
+    <div class="card">
+        <p>Pulseras</p>
+    </div>
+</div>

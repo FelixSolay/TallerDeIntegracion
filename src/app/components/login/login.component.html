@@ -1,0 +1,38 @@
+<div id="container">
+    <h1>Iniciar Sesión</h1>
+    <div class="card">
+        <div id="form">
+            <form id="loginForm" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <div>
+                    <label for="mail" id="mail">Mail</label>
+                    <input type="text" name="mail" id="mail" formControlName="mail" required>
+                    <div *ngIf="loginForm.get('mail')?.invalid && loginForm.get('mail')?.touched" id="error">
+                        El mail es obligatorio
+                    </div>
+                </div>
+                <div>
+                    <label for="password" id="password">Contraseña</label>
+                    <input type="password"  name="password" id="password" formControlName="password" required>
+                    <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" id="error">
+                        La contraseña es obligatoria
+                    </div>
+                </div>
+                <button type="submit" [disabled]="loginForm.invalid">Iniciar Sesión</button>
+            </form>
+        </div>
+        <hr>
+        <div id="register">
+            <p>Todavía no tienes cuenta?</p>
+            <app-button buttonClass="register" etiqueta="Registrarse" link="/register"></app-button>
+        </div>
+    </div>
+</div>
+
+<!--El usuario se registra correctamente-->
+<app-popupLogin *ngIf="popup == 'success'" [type]="type"></app-popupLogin>
+
+<!--Contraseña incorrecta-->
+<app-popupError *ngIf="popup == 'contraseñaIncorrecta'" text="Contraseña incorrecta" textAux="Por favor ingrese la contraseña nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+
+<!--Mail no registrado-->
+<app-popupError *ngIf="popup == 'fail'" text="El mail no se encuentra registrado" textAux="Por favor verifique el mail o registrelo" [closePopup]="close.bind(this)"></app-popupError>
