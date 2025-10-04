@@ -10,7 +10,7 @@ const { type } = require('os');
 
 
 const app = express();
-const port = 5000;
+const port = 3000;
 
 
 // Middleware
@@ -50,8 +50,13 @@ const adminSchema = new mongoose.Schema({
 
 const Admin = mongoose.model('admins', adminSchema);
 
+function hashPassword(password) {
+    const hash = crypto.createHash('sha256');
+    hash.update(password);
+    return hash.digest('hex');
+}
 // Ruta /register corregida
-app.post('/api/clientes', async (req, res) => {
+app.post('/api/clientes/register', async (req, res) => {
     let { nombre, apellido, dni, mail, password1, password2 } = req.body;
 
     // Trim and basic validation
@@ -98,11 +103,6 @@ app.post('/api/clientes', async (req, res) => {
 });
 
 
-function hashPassword(password) {
-    const hash = crypto.createHash('sha256');
-    hash.update(password);
-    return hash.digest('hex');
-}
 
 // Login
 app.post('/api/admins', async (req, res) => {

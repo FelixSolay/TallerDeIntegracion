@@ -12,6 +12,9 @@ export class GlobalService {
   private _url = new BehaviorSubject<string>('');
   private _imageClass = new BehaviorSubject<string>('default-style');
   
+  // URL base del servidor
+  public apiUrl = 'http://localhost:3000';
+  
   // Observable para que los componentes puedan suscribirse
   url$ = this._url.asObservable();
   imageClass$ = this._imageClass.asObservable();

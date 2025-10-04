@@ -6,6 +6,7 @@ import { PopupLoginComponent } from '../popupLogin/popupLogin.component';
 import { PopupErrorComponent } from '../popupError/popupError.component';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { GlobalService } from '../../services/global.service';
 
 
 @Component({
@@ -24,7 +25,7 @@ export class RegisterComponent implements OnInit {
     password1: new FormControl('', Validators.required),
     password2: new FormControl('', Validators.required),
   });
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private globalService: GlobalService) {}
 
   router = inject(Router);
   popup = '';
@@ -48,7 +49,7 @@ export class RegisterComponent implements OnInit {
 
 
 
-    this.http.post<any>('http://localhost:5000/api/clientes', formData)
+    this.http.post<any>(`${this.globalService.apiUrl}/api/clientes/register`, formData)
     .subscribe({
       next: (result) => {
         console.log('Respuesta del servidor:', result);

@@ -8,6 +8,15 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { PopupErrorComponent } from '../popupError/popupError.component';
 import { ParticleEffectSquare } from '../../extras/particle-effect-square';
+import { GlobalService } from '../../services/global.service';
+
+interface LoginResponse {
+  success: boolean;
+  type: string;
+  name: string;
+  lastname: string;
+  error?: string;
+}
 
 @Component({
   selector: 'app-login',
@@ -29,21 +38,15 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private globalService: GlobalService) {}
 
   onSubmit() {
-    if (this.loginForm.invalid) {
-      this.popup = 'fail';
-      return;
-    }
-
     const formData = {
-      mail: this.loginForm.value.mail || '',
-      password: this.loginForm.value.password || ''
+      mail: this.loginForm.get('mail')?.value || '',
+      password: this.loginForm.get('password')?.value || ''
     };
 
-
-    this.http.post<any>('http://localhost:5000/api/clientes/login', formData).subscribe({
+  this.http.post<LoginResponse>(`${this.globalService.apiUrl}/api/clientes/login`, formData).subscribe({
       next: (result) => {
         console.log("Respuesta del backend:", result);
         if (result && result.success) {
