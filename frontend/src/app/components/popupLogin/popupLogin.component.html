@@ -1,0 +1,19 @@
+<div class="background" (click)="onClose()">
+  <div class="card" id="popup" (click)="$event.stopPropagation()">
+      <p id="bienvenido">BIENVENIDO</p>
+      <strong><p>{{lastname | uppercase}},</p></strong>
+      <p>{{name}}</p>
+      @if (cantType > 1) {
+          <p id="access">Acceder como:</p>
+          <div id="botones">
+              <button *ngFor="let tipo of type" (click)="setType(tipo)">{{tipo}}</button>
+          </div>
+      } @else {
+          <app-button *ngIf="type[0] == 'Propietario' || type[0] == 'Inquilino'" etiqueta="Ver mis expensas" link="{{url}}"></app-button>
+          <app-button *ngIf="type[0] == 'Administrador'" etiqueta="Ver mis edificios" link="{{url}}"></app-button>
+      }
+
+      <app-button *ngIf="type == 'cliente'" etiqueta="Ir a comprar" link="/productos"></app-button>
+      <app-button *ngIf="type != 'cliente'" etiqueta="Cerrar" (click)="onClose()"></app-button>
+  </div>
+</div>

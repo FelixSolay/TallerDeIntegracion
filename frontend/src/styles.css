@@ -1,0 +1,217 @@
+/* You can add global styles to this file, and also import other style files */
+
+@font-face {
+    font-family: 'Allysa';
+    src: url('../public/fonts/Allysa\ Daguise.ttf')  format('truetype')
+}
+
+html {
+    margin: 0px;
+    width: 100%;
+    height: 100%;
+    font-family:'Inter', sans-serif;
+    letter-spacing: 1px;
+    font-size: 16px;
+    /*background-image: url('../public/images/background.jpg') no-repeat center center fixed;
+    background-size: cover;
+    background-attachment: fixed;
+    background-color: #D0E8C3;*/
+    color: #09008C;
+}
+
+body {
+    margin: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 40px;
+}
+
+button {
+    appearance: none;
+    width: 100%;
+    background-color: #09008C;
+    color: #E4EFE9;
+    border-radius: 10px;
+    border: 3px solid #09008C;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: inline-block;
+    font-family:'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    list-style: none;
+    padding: 6px 30px;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    vertical-align: middle;
+    word-wrap: break-word;
+    margin: 10px 0px;
+}
+
+button:hover {
+    transition-duration: 0.3s;
+    box-shadow: 0px 0px 20px 5px rgba(95, 95, 95, 0.4);
+    background-color: #121ab8;
+    border: 3px solid #121ab8;
+}
+
+button:disabled {
+    background-color: #1d1d1d;
+    color: #919191;
+    cursor: default;
+    border: 3px solid #1d1d1d;
+    box-shadow: none;
+}
+
+button:active {
+    background-color: #E4EFE9;
+    box-shadow: 0px 0px 20px 5px rgba(95, 95, 95, 0.4);
+    color: #121ab8;
+    transition: none 0.3s;
+    border: 3px solid #121ab8;
+}
+
+#backgroundWrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: -2;
+}
+
+#backgroundColor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #D0E8C3;
+  z-index: -2;
+}
+
+#backgroundImage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('../public/images/background.jpg') no-repeat center center;
+    background-size: cover;
+    opacity: 40%;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+    z-index: -1;
+}
+
+#backgroundColor.defaultStyle {
+    background-color: #E4EFE9;
+}
+
+#backgroundColor.homeStyle {
+    background-color: #D0E8C3;
+}
+
+#backgroundColor.loginStyle {
+    background-color: #D0E8C3;
+}
+
+#backgroundImage.defaultStyle {
+    filter: blur(0px);
+}
+
+#backgroundImage.homeStyle {
+    filter: blur(0px);
+}
+
+#backgroundImage.loginStyle {
+    filter: blur(4px);
+}
+
+.card {
+    padding: 20px;
+    background-color: #E4EFE9;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+input, textarea {
+    width: calc(100% - 4px - 20px);
+    border: 2px solid #09008C;
+    border-radius: 10px;
+    padding: 10px;
+    color: #09008C;
+    background-color: transparent;
+    margin-bottom: 10px;
+}
+
+label { 
+    margin: 0px 0px 5px 10px;
+    color: #09008C;
+}
+
+input:hover, textarea:hover, select:hover {
+    background-color: rgba(130, 124, 218, 0.4);
+    box-shadow: 0px 0px 10px 1px rgba(5, 0, 80, 0.2);
+}
+
+input:focus, textarea:focus, select:focus {
+    background-color: rgba(130, 124, 218, 0.4);
+    box-shadow: 0px 0px 10px 1px rgba(5, 0, 80, 0.2);
+    outline:none;
+}
+
+input::placeholder {
+    color: rgba(0, 4, 71, 0.5);
+}
+
+input.filled, select.filled {
+    background-color: rgba(130, 124, 218, 0.4);
+}
+
+select {
+    cursor: pointer;
+    width: 100%;
+    height: calc(100% - 4px - 20px);
+    border: 2px solid #09008C;
+    border-radius: 10px;
+    padding: 8px;
+    color: #09008C;
+    font-weight: bold;
+    font-size: 16px;
+    background-color: transparent;
+    margin-bottom: 10px;
+}
+
+textarea, input[type="date"] {
+    height: 16px;
+    font-family:'Inter', sans-serif;
+}
+
+/* Estilos para mensajes de error */
+#error, .error {
+    color: #dc3545;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 2px 0 0 10px;
+    padding: 0;
+    line-height: 1.2;
+}
