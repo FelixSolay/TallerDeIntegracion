@@ -58,9 +58,10 @@ const Cliente = mongoose.model('clientes', clienteSchema);
 
 // Definir esquema y modelo para admins (necesario antes de usar Admin)
 const adminSchema = new mongoose.Schema({
-  nombre: String,
-  dni: String,
-  password: String
+    nombre: String,
+    telefono: { type: String, default: '' },
+    mail: { type: String, default: '' },
+    password: String
 });
 
 const Admin = mongoose.model('admins', adminSchema);
@@ -146,6 +147,95 @@ app.post('/api/admins', async (req, res) => {
     } catch (error) {
         console.error('Error en login:', error);
         res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// New admin login route that supports login by mail or dni
+app.post('/api/admins/login', async (req, res) => {
+    const { mail, dni, password } = req.body;
+    try {
+        let admin = null;
+        if (mail && mail.trim() !== '') {
+            admin = await Admin.findOne({ mail: mail.trim() });
+        } else if (dni) {
+            admin = await Admin.findOne({ dni: dni.toString() });
+        } else {
+            return res.status(400).json({ success: false, error: 'missingCredentials' });
+        }
+
+        if (!admin) {
+            return res.status(401).json({ success: false, error: 'adminNotFound' });
+        }
+
+        const hashedPassword = hashPassword(password);
+        if (admin.password !== hashedPassword) {
+            return res.status(401).json({ success: false, error: 'contraseñaIncorrecta' });
+        }
+
+        // Return useful info so frontend can store session data
+        res.status(200).json({ success: true,type: "administrador", name: admin.nombre || '', mail: admin.mail || '', dni: admin.dni || '' });
+    } catch (error) {
+        console.error('Error en admin login (mail/dni):', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Actualizar datos del admin (por mail)
+app.put('/api/admins/update', async (req, res) => {
+    let { mail, nombre, telefono, password } = req.body;
+
+    mail = mail ? mail.trim() : '';
+    nombre = nombre ? nombre.trim() : '';
+    telefono = telefono ? telefono.trim() : '';
+
+    if (!mail) {
+        return res.status(400).json({ success: false, reason: 'missingMail' });
+    }
+
+    try {
+        // Validaciones opcionales
+        if (telefono && !validateTelefono(telefono)) {
+            return res.status(400).json({ success: false, reason: 'badTelefono' });
+        }
+
+        if (nombre === '') {
+            // allow empty nombre? we'll not force it, just leave existing if not provided
+        }
+
+        const updateData = {};
+        if (nombre) updateData.nombre = nombre;
+        if (telefono) updateData.telefono = telefono;
+        if (password) updateData.password = hashPassword(password);
+
+        const updatedAdmin = await Admin.findOneAndUpdate({ mail: mail }, updateData, { new: true });
+        if (!updatedAdmin) {
+            return res.status(404).json({ success: false, reason: 'adminNotFound' });
+        }
+
+        return res.json({ success: true, admin: { nombre: updatedAdmin.nombre, mail: updatedAdmin.mail, dni: updatedAdmin.dni } });
+    } catch (error) {
+        console.error('Error actualizando admin:', error);
+        return res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Eliminar admin por mail
+app.delete('/api/admins/:mail', async (req, res) => {
+    const { mail } = req.params;
+    if (!mail || mail.trim() === '') {
+        return res.status(400).json({ success: false, reason: 'missingMail' });
+    }
+
+    try {
+        const deleted = await Admin.findOneAndDelete({ mail: mail.trim() });
+        if (!deleted) {
+            return res.status(404).json({ success: false, reason: 'adminNotFound' });
+        }
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Error eliminando admin:', error);
+        return res.status(500).json({ success: false, reason: 'serverError' });
     }
 });
 

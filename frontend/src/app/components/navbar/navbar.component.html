@@ -76,9 +76,18 @@
             </a>
         </li>
     </ul>
-    <a routerLink="/perfil">
-        <div class="user">
+    <div class="user-menu-container">
+        <div class="user" (click)="toggleUserMenu()">
             <p *ngIf="!isMobile">{{name}}</p>
-        </div> 
-    </a>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <div class="user-dropdown" *ngIf="showUserMenu">
+            <div class="dropdown-item" (click)="goToProfile()">
+                <span>Modificar perfil</span>
+            </div>
+            <div class="dropdown-item logout" (click)="logout()">
+                <span>Cerrar sesión</span>
+            </div>
+        </div>
+    </div>
 </header>

@@ -1,90 +1,106 @@
-<div id="container">
-    <div class="perfil-content">
-        <form [formGroup]="perfilForm" (ngSubmit)="onSubmit()">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="nombres">Nombres</label>
-                    <input type="text" id="nombres" formControlName="nombre" placeholder="Nombre">
-                    <div *ngIf="perfilForm.get('nombre')?.invalid && perfilForm.get('nombre')?.touched" id="error">
-                        El nombre es obligatorio
+<div id="container2">
+    <div id="container"> 
+            <div class="perfil-content">
+                <form [formGroup]="perfilForm" (ngSubmit)="onSubmit()">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombres">Nombres</label>
+                            <input type="text" id="nombres" formControlName="nombre" placeholder="Nombre">
+                            <div *ngIf="perfilForm.get('nombre')?.invalid && perfilForm.get('nombre')?.touched" id="error">
+                                El nombre es obligatorio
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="apellidos">Apellidos</label>
+                            <input type="text" id="apellidos" formControlName="apellido" placeholder="Apellido">
+                            <div *ngIf="perfilForm.get('apellido')?.invalid && perfilForm.get('apellido')?.touched" id="error">
+                                El apellido es obligatorio
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label for="apellidos">Apellidos</label>
-                    <input type="text" id="apellidos" formControlName="apellido" placeholder="Apellido">
-                    <div *ngIf="perfilForm.get('apellido')?.invalid && perfilForm.get('apellido')?.touched" id="error">
-                        El apellido es obligatorio
+        
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <input type="tel" id="telefono" formControlName="telefono" placeholder="011 1234-5678">
+                            <div *ngIf="perfilForm.get('telefono')?.invalid && perfilForm.get('telefono')?.touched" id="error">
+                                <span *ngIf="perfilForm.get('telefono')?.hasError('pattern')">El formato del teléfono no es válido</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="mail">Mail</label>
+                            <input type="email" id="mail" formControlName="mail" placeholder="nombre@mail.com">
+                            <div *ngIf="perfilForm.get('mail')?.invalid && perfilForm.get('mail')?.touched" id="error">
+                                <span *ngIf="perfilForm.get('mail')?.hasError('email')">El correo electrónico no tiene un formato válido</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
+        
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="direccion">Dirección</label>
+                            <input type="text" id="direccion" formControlName="domicilio" placeholder="Calle 123">
+                        </div>
+                        <div class="form-group">
+                            <label for="codigoPostal">Código Postal</label>
+                            <input type="text" id="codigoPostal" formControlName="codigoPostal" placeholder="1234">
+                            <div *ngIf="perfilForm.get('codigoPostal')?.invalid && perfilForm.get('codigoPostal')?.touched" id="error">
+                                El código postal debe tener entre 4 y 8 dígitos
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div class="readonly-row">
+                        <div class="readonly-fields">
+                            <div>   
+                                <div class="readonly-group">
+                                    <label class="readonly-label">N° DNI</label>
+                                </div>
+                                <div class="readonly-group">
+                                    {{userDni}}
+                                </div>
+                            </div>   
+                            <div>
+                                <div class="readonly-group">
+                                    <label class="readonly-label">Saldo</label>
+                                </div>
+                                <div class="readonly-group">
+                                    ${{userSaldo | number:'1.2-2'}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="readonly-group saldo">
+                            <div class="saldo-container">
+                                <span class="cart-icon-small">🛒</span>
+                                <span class="saldo-amount">${{userSaldo | number:'1.2-2'}}</span>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div class="buttons-section">
+                        <div class="action-buttons">
+                            <button type="button" class="btn-green" (click)="pedidosEnCurso()">
+                                Pedidos en curso
+                            </button>
+                            <button type="button" class="btn-green" (click)="historialCompras()">
+                                Historial de compras
+                            </button>
+                        </div>
+        
+                        <button type="submit" class="btn-blue-main" [disabled]="perfilForm.invalid || !perfilForm.get('nombre')?.value?.trim() || !perfilForm.get('apellido')?.value?.trim()">
+                            Guardar cambios
+                        </button>
+        
+                    </div>
+                </form>
             </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="telefono">Teléfono</label>
-                    <input type="tel" id="telefono" formControlName="telefono" placeholder="011 1234-5678">
-                    <div *ngIf="perfilForm.get('telefono')?.invalid && perfilForm.get('telefono')?.touched" id="error">
-                        <span *ngIf="perfilForm.get('telefono')?.hasError('pattern')">El formato del teléfono no es válido</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="mail">Mail</label>
-                    <input type="email" id="mail" formControlName="mail" placeholder="nombre@mail.com">
-                    <div *ngIf="perfilForm.get('mail')?.invalid && perfilForm.get('mail')?.touched" id="error">
-                        <span *ngIf="perfilForm.get('mail')?.hasError('email')">El correo electrónico no tiene un formato válido</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="direccion">Dirección</label>
-                    <input type="text" id="direccion" formControlName="domicilio" placeholder="Calle 123">
-                </div>
-                <div class="form-group">
-                    <label for="codigoPostal">Código Postal</label>
-                    <input type="text" id="codigoPostal" formControlName="codigoPostal" placeholder="1234">
-                    <div *ngIf="perfilForm.get('codigoPostal')?.invalid && perfilForm.get('codigoPostal')?.touched" id="error">
-                        El código postal debe tener entre 4 y 8 dígitos
-                    </div>
-                </div>
-            </div>
-
-            <div class="readonly-row">
-                <div class="readonly-group">
-                    <label>N° DNI</label>
-                    <div class="readonly-value">{{userDni}}</div>
-                </div>
-                <div class="readonly-group saldo">
-                    <div class="saldo-container">
-                        <span class="cart-icon-small">🛒</span>
-                        <span class="saldo-amount">${{userSaldo | number:'1.2-2'}}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="buttons-section">
-                <div class="action-buttons">
-                    <button type="button" class="btn-green" (click)="pedidosEnCurso()">
-                        Pedidos en curso
-                    </button>
-                    <button type="button" class="btn-green" (click)="historialCompras()">
-                        Historial de compras
-                    </button>
-                </div>
-
-                <button type="submit" class="btn-blue-main" [disabled]="perfilForm.invalid || !perfilForm.get('nombre')?.value?.trim() || !perfilForm.get('apellido')?.value?.trim()">
-                    Guardar cambios
-                </button>
-
-                <div class="bottom-buttons">
-                    <button type="button" class="btn-red" (click)="eliminarCuenta()">
-                        Eliminar cuenta
-                    </button>
-                </div>
-            </div>
-        </form>
+        </div>
+        <div class="bottom-buttons2">
+            <button type="button" class="btn-red" (click)="eliminarCuenta()">
+                Eliminar cuenta
+            </button>
+        </div>
     </div>
-</div>
 
 <!-- Popups de error y éxito -->
 <app-popupError *ngIf="popup == 'success'" text="Perfil actualizado exitosamente" textAux="Sus datos han sido guardados correctamente" textButton="Aceptar" [closePopup]="close.bind(this)"></app-popupError>

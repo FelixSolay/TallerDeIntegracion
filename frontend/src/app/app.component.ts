@@ -50,9 +50,11 @@ export class AppComponent {
 
   setBackgroundClass() {
     const currentRoute = this.router.url;
-    if (currentRoute === '/') {
+    const route = (currentRoute || '').toLowerCase();
+    if (route === '/') {
       this.imageClass = 'homeStyle';
-    } else if (currentRoute === '/login' || currentRoute === '/register') {
+    } else if (route === '/register' || route.startsWith('/login')) {
+      // startWith('/login') covers '/login' and '/LoginAdmin' (case-insensitive via toLowerCase)
       this.imageClass = 'loginStyle';
     } else {
       this.imageClass = 'defaultStyle';

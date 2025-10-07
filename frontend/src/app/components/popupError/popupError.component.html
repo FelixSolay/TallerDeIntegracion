@@ -2,5 +2,5 @@
     <p>{{text}}</p>
     <p *ngIf="textAux != ''" id="info">{{textAux}}</p>
     <button (click)="close()" *ngIf="text != 'El DNI ya se encuentra registrado'">{{ textButton }}</button>
-    <app-button etiqueta="Iniciar sesión" link="/login" *ngIf="text == 'El DNI ya se encuentra registrado'"></app-button>
+    <app-button etiqueta="Iniciar sesión" link="/login" *ngIf="text == 'El mail ya se encuentra registrado' || text == 'El DNI ya se encuentra registrado'"></app-button>
 </div>

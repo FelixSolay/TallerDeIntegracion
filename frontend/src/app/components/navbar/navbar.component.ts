@@ -99,7 +99,11 @@ export class NavbarComponent implements OnInit {
 
   goToProfile(): void {
     this.closeUserMenu();
-    this.router.navigate(['/perfil']);
+    if (this.type === 'Administrador') {
+      this.router.navigate(['/perfilAdministrador']);
+    } else {
+      this.router.navigate(['/perfil']);
+    }
   }
 
   logout(): void {

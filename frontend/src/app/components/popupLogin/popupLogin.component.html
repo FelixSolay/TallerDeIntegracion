@@ -1,8 +1,14 @@
 <div class="background" (click)="onClose()">
   <div class="card" id="popup" (click)="$event.stopPropagation()">
       <p id="bienvenido">BIENVENIDO</p>
-      <strong><p>{{lastname | uppercase}},</p></strong>
-      <p>{{name}}</p>
+      <!-- Si es administrador mostrar sólo el nombre; para otros tipos mostrar apellido en mayúsculas y luego el nombre -->
+      <ng-container *ngIf="type == 'Administrador'; else notAdmin">
+          <p id="admin-name">{{name}}</p>
+      </ng-container>
+      <ng-template #notAdmin>
+          <strong><p>{{lastname | uppercase}},</p></strong>
+          <p>{{name}}</p>
+      </ng-template>
       @if (cantType > 1) {
           <p id="access">Acceder como:</p>
           <div id="botones">
