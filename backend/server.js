@@ -17,33 +17,28 @@ const port = 3000;
 app.use(cors()); // Permite conexiones desde Angular
 app.use(express.json()); // Para procesar JSON en las peticiones
 
-// Conectar a MongoDB Atlas
-
 mongoose.connect('mongodb+srv://pololo5007:Playa1820@cluster0.qlomp8b.mongodb.net/SupermercadoDB?retryWrites=true&w=majority&appName=Cluster0')
 .then(() => console.log('Conectado a MongoDB Atlas'))
 .catch(err => console.error('Error al conectar a MongoDB:', err));
 
-// Validar email
 function validateEmail(email) {
   const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return regex.test(email);
 }
 
-// Validar teléfono
-function validateTelefono(telefono) {
+function validatePhone(telefono) {
   const regex = /^[\d\s\-\(\)\+]{8,15}$/;
   return regex.test(telefono);
 }
 
-// Validar código postal
-function validateCodigoPostal(codigoPostal) {
+function validatePostalCode(codigoPostal) {
   const regex = /^\d{4,8}$/;
   return regex.test(codigoPostal);
 }
 
 // Registrar cliente
 // Definir un esquema y modelo para clientes
-const clienteSchema = new mongoose.Schema({
+const customerSchema = new mongoose.Schema({
   nombre: String,
   apellido: String,
   dni: String,
@@ -54,7 +49,7 @@ const clienteSchema = new mongoose.Schema({
   codigoPostal: { type: String, default: '' }
 });
 
-const Cliente = mongoose.model('clientes', clienteSchema);
+const Customer = mongoose.model('clientes', customerSchema);
 
 // Definir esquema y modelo para admins (necesario antes de usar Admin)
 const adminSchema = new mongoose.Schema({
@@ -72,7 +67,7 @@ function hashPassword(password) {
     return hash.digest('hex');
 }
 // Ruta /register corregida
-app.post('/api/clientes/register', async (req, res) => {
+app.post('/api/customers/register', async (req, res) => {
     let { nombre, apellido, dni, mail, telefono, password1, password2 } = req.body;
 
     // Trim and basic validation
@@ -96,12 +91,12 @@ app.post('/api/clientes/register', async (req, res) => {
             return res.json({ success: false, reason: "badEmail" });
         }
 
-        if (!validateTelefono(telefono)) {
+        if (!validatePhone(telefono)) {
             return res.json({ success: false, reason: "badTelefono" });
         }
 
         // Verificar si ya existe el cliente por mail
-        const user = await Cliente.findOne({ mail: mail });
+        const user = await Customer.findOne({ mail: mail });
 
         if (user) {
             return res.json({ success: false, reason: "alreadyExists" });
@@ -109,7 +104,7 @@ app.post('/api/clientes/register', async (req, res) => {
 
         const hashedPassword = hashPassword(password1);
 
-        await Cliente.create({
+        await Customer.create({
             nombre,
             apellido,
             dni,
@@ -153,6 +148,7 @@ app.post('/api/admins', async (req, res) => {
 // New admin login route that supports login by mail or dni
 app.post('/api/admins/login', async (req, res) => {
     const { mail, dni, password } = req.body;
+    
     try {
         let admin = null;
         if (mail && mail.trim() !== '') {
@@ -168,6 +164,7 @@ app.post('/api/admins/login', async (req, res) => {
         }
 
         const hashedPassword = hashPassword(password);
+        
         if (admin.password !== hashedPassword) {
             return res.status(401).json({ success: false, error: 'contraseñaIncorrecta' });
         }
@@ -194,7 +191,7 @@ app.put('/api/admins/update', async (req, res) => {
 
     try {
         // Validaciones opcionales
-        if (telefono && !validateTelefono(telefono)) {
+        if (telefono && !validatePhone(telefono)) {
             return res.status(400).json({ success: false, reason: 'badTelefono' });
         }
 
@@ -239,24 +236,24 @@ app.delete('/api/admins/:mail', async (req, res) => {
     }
 });
 
-app.post('/api/clientes/login', async (req, res) => {
+app.post('/api/customers/login', async (req, res) => {
     const { mail, password } = req.body;
     try {
-        const cliente = await Cliente.findOne({ mail: mail});
-        if (!cliente) {
+        const customer = await Customer.findOne({ mail: mail});
+        if (!customer) {
             return res.status(401).json({ success: false, error: 'mailIncorrecto' });
         }
         const hashedPassword = hashPassword(password);
-        if (cliente.password !== hashedPassword) {
+        if (customer.password !== hashedPassword) {
             return res.status(401).json({ success: false, error: 'contraseñaIncorrecta' });
         }
         //necesito que devuelva los datos del cliente en el response incluyendo el DNI
         res.status(200).json({ 
             success: true, 
             type: "cliente", 
-            name: cliente.nombre, 
-            lastname: cliente.apellido,
-            dni: cliente.dni 
+            name: customer.nombre, 
+            lastname: customer.apellido,
+            dni: customer.dni 
         });
     } catch (error) {
         console.error('Error en login:', error);
@@ -265,42 +262,34 @@ app.post('/api/clientes/login', async (req, res) => {
 });
 
 // Obtener datos completos del cliente por DNI
-app.get('/api/clientes/:dni', async (req, res) => {
+app.get('/api/customers/:dni', async (req, res) => {
     const { dni } = req.params;
-    console.log('=== GET CLIENTE REQUEST ===');
-    console.log('DNI recibido:', dni);
     
     // Validar que el DNI no esté vacío
     if (!dni || dni.trim() === '') {
-        console.log('DNI vacío o inválido');
         return res.status(400).json({ success: false, error: 'dniRequerido' });
     }
     
     try {
-        console.log('Buscando cliente con DNI:', dni.trim());
-        const cliente = await Cliente.findOne({ dni: dni.trim() });
+        const customer = await Customer.findOne({ dni: dni.trim() });
         
-        if (!cliente) {
-            console.log('Cliente no encontrado en la base de datos');
+        if (!customer) {
             return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
         }
         
-        console.log('Cliente encontrado en DB:', cliente);
-        
         // Devolver datos REALES del cliente sin la contraseña
-        const clienteData = {
-            nombre: cliente.nombre,
-            apellido: cliente.apellido,
-            dni: cliente.dni,
-            mail: cliente.mail,
-            telefono: cliente.telefono,
-            domicilio: cliente.domicilio,
-            codigoPostal: cliente.codigoPostal,
+        const customerData = {
+            nombre: customer.nombre,
+            apellido: customer.apellido,
+            dni: customer.dni,
+            mail: customer.mail,
+            telefono: customer.telefono,
+            domicilio: customer.domicilio,
+            codigoPostal: customer.codigoPostal,
             saldo: 2000.00 // Valor por defecto, aquí puedes implementar lógica de saldo real
         };
         
-        console.log('Datos a enviar al frontend:', clienteData);
-        res.status(200).json({ success: true, cliente: clienteData });
+        res.status(200).json({ success: true, cliente: customerData });
     } catch (error) {
         console.error('Error al obtener cliente:', error);
         res.status(500).json({ success: false, error: 'serverError' });
@@ -308,9 +297,7 @@ app.get('/api/clientes/:dni', async (req, res) => {
 });
 
 // Actualizar datos del cliente
-app.put('/api/clientes/update', async (req, res) => {
-    console.log('Datos recibidos para actualizar:', req.body);
-    
+app.put('/api/customers/update', async (req, res) => {
     let { dni, nombre, apellido, telefono, mail, domicilio, codigoPostal } = req.body;
     
     // Trim and basic validation - solo nombre, apellido y DNI son obligatorios
@@ -321,38 +308,31 @@ app.put('/api/clientes/update', async (req, res) => {
     domicilio = domicilio ? domicilio.trim() : '';
     codigoPostal = codigoPostal ? codigoPostal.trim() : '';
     
-    console.log('Datos después del trim:', { dni, nombre, apellido, telefono, mail, domicilio, codigoPostal });
-    
     // Solo validar campos obligatorios
     if (!nombre || !apellido || !dni) {
-        console.log('Campos obligatorios faltantes');
         return res.status(400).json({ success: false, reason: "missingFields" });
     }
     
     try {
         // Validar email solo si se proporciona
         if (mail && !validateEmail(mail)) {
-            console.log('Email inválido:', mail);
             return res.json({ success: false, reason: "badEmail" });
         }
         
         // Validar teléfono solo si se proporciona
-        if (telefono && !validateTelefono(telefono)) {
-            console.log('Teléfono inválido:', telefono);
+        if (telefono && !validatePhone(telefono)) {
             return res.json({ success: false, reason: "badTelefono" });
         }
         
         // Validar código postal solo si se proporciona
-        if (codigoPostal && !validateCodigoPostal(codigoPostal)) {
-            console.log('Código postal inválido:', codigoPostal);
+        if (codigoPostal && !validatePostalCode(codigoPostal)) {
             return res.json({ success: false, reason: "badCodigoPostal" });
         }
         
         // Verificar si el email ya existe en otro usuario solo si se proporciona email
         if (mail) {
-            const existingUser = await Cliente.findOne({ mail: mail, dni: { $ne: dni } });
+            const existingUser = await Customer.findOne({ mail: mail, dni: { $ne: dni } });
             if (existingUser) {
-                console.log('Email ya existe en otro usuario');
                 return res.json({ success: false, reason: "mailExists" });
             }
         }
@@ -368,21 +348,17 @@ app.put('/api/clientes/update', async (req, res) => {
         if (domicilio) updateData.domicilio = domicilio;
         if (codigoPostal) updateData.codigoPostal = codigoPostal;
         
-        console.log('Datos a actualizar:', updateData);
-        
         // Actualizar el cliente
-        const updatedCliente = await Cliente.findOneAndUpdate(
+        const updatedCustomer = await Customer.findOneAndUpdate(
             { dni: dni },
             updateData,
             { new: true }
         );
         
-        if (!updatedCliente) {
-            console.log('Cliente no encontrado para actualizar');
+        if (!updatedCustomer) {
             return res.status(404).json({ success: false, reason: "clienteNoEncontrado" });
         }
         
-        console.log('Cliente actualizado exitosamente');
         res.json({ success: true, message: "Cliente actualizado correctamente" });
     } catch (error) {
         console.error('Error al actualizar cliente:', error);
@@ -391,13 +367,13 @@ app.put('/api/clientes/update', async (req, res) => {
 });
 
 // Eliminar cuenta del cliente
-app.delete('/api/clientes/:dni', async (req, res) => {
+app.delete('/api/customers/:dni', async (req, res) => {
     const { dni } = req.params;
     
     try {
-        const deletedCliente = await Cliente.findOneAndDelete({ dni: dni });
+        const deletedCustomer = await Customer.findOneAndDelete({ dni: dni });
         
-        if (!deletedCliente) {
+        if (!deletedCustomer) {
             return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
         }
         

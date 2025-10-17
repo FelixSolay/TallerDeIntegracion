@@ -26,7 +26,7 @@
 
     <div class="buttons-section">
       <div class="action-buttons">
-        <button type="submit" class="btn-green">Guardar cambios</button>
+        <button type="submit" class="btn-blue-main">Guardar cambios</button>
       </div>
 
       <div class="bottom-buttons">
@@ -36,22 +36,22 @@
   </form>
 
   <!-- Reutilizar el popup existente; usar el selector correcto y los inputs que espera -->
-  <app-popupError *ngIf="popup == 'success'" text="Perfil actualizado exitosamente" textAux="Sus datos han sido guardados correctamente" textButton="Aceptar" [closePopup]="close.bind(this)"></app-popupError>
+  <app-error-popup *ngIf="popup == 'success'" text="Perfil actualizado exitosamente" textAux="Sus datos han sido guardados correctamente" textButton="Aceptar" [closePopup]="close.bind(this)"></app-error-popup>
 
-  <app-popupError *ngIf="popup == 'error'" text="Error al actualizar perfil" textAux="Por favor intente nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+  <app-error-popup *ngIf="popup == 'error'" text="Error al actualizar perfil" textAux="Por favor intente nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
-  <app-popupError *ngIf="popup == 'networkError'" text="Error de conexión" textAux="Verifique su conexión a internet e intente nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+  <app-error-popup *ngIf="popup == 'networkError'" text="Error de conexión" textAux="Verifique su conexión a internet e intente nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
-  <app-popupError *ngIf="popup == 'missingRequired'" text="Campos obligatorios faltantes" textAux="Nombre es obligatorio" [closePopup]="close.bind(this)"></app-popupError>
+  <app-error-popup *ngIf="popup == 'missingRequired'" text="Campos obligatorios faltantes" textAux="Nombre es obligatorio" [closePopup]="close.bind(this)"></app-error-popup>
 
-  <app-popupError *ngIf="popup == 'errorEliminar'" text="Error al eliminar cuenta" textAux="No se pudo eliminar la cuenta" [closePopup]="close.bind(this)"></app-popupError>
+  <app-error-popup *ngIf="popup == 'errorEliminar'" text="Error al eliminar cuenta" textAux="No se pudo eliminar la cuenta" [closePopup]="close.bind(this)"></app-error-popup>
 
   <!-- Confirmación de eliminación (modal overlay igual que en perfil de clientes) -->
   <div *ngIf="popup == 'confirmarEliminar'" class="background" (click)="close()">
     <div class="popup-confirmation" (click)="$event.stopPropagation()">
       <h3>Confirmar eliminación</h3>
       <p>¿Estás seguro que deseas eliminar tu cuenta de administrador?</p>
-      <p class="warning">Esta acción no se puede deshacer.</p>
+      <p class="warning">Esta acción no puede deshacerse.</p>
       <div class="buttons-container">
         <button class="btn-red" (click)="confirmarEliminacion()">Sí, eliminar</button>
         <button class="btn-blue-secondary" (click)="close()">Cancelar</button>

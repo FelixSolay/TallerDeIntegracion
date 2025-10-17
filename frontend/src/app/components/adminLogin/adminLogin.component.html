@@ -1,5 +1,5 @@
 <div id="container">
-    <h1 id="H1">Iniciar Sesión </h1>
+    <h1 id="H1">Iniciar sesión </h1>
     <h1 id="H1">Administrador</h1>
     <div class="card">
         <div id="form">
@@ -12,16 +12,16 @@
                     <label for="password" id="password">Contraseña</label>
                     <input type="password"  name="password" id="password" formControlName="password" required>
                 </div>
-                <button type="submit" [disabled]="loginForm.invalid">Iniciar Sesión</button>
+                <button type="submit" [disabled]="loginForm.invalid">Iniciar sesión</button>
             </form>
     </div>
 </div>
 
 <!--El admin se registra correctamente-->
-<app-popupLogin *ngIf="popup == 'success'" [type]="'Administrador'"></app-popupLogin>
+<app-login-popup *ngIf="popup == 'success'" [type]="'Administrador'"></app-login-popup>
 
 <!--Contraseña incorrecta-->
-<app-popupError *ngIf="popup == 'contraseñaIncorrecta'" text="Contraseña incorrecta" textAux="Por favor ingrese la contraseña nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'contraseñaIncorrecta'" text="Contraseña incorrecta" textAux="Por favor ingrese la contraseña nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
 <!--Credenciales no registradas-->
-<app-popupError *ngIf="popup == 'fail'" text="Credenciales incorrectas" textAux="Por favor verifique los datos" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'fail'" text="Credenciales incorrectas" textAux="Por favor verifique los datos" [closePopup]="close.bind(this)"></app-error-popup>

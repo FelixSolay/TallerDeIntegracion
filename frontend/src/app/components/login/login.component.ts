@@ -3,10 +3,10 @@ import { RouterOutlet } from '@angular/router';
 import { AppComponent } from '../../app.component';
 import { ButtonComponent } from '../button/button.component';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { PopupLoginComponent } from '../popupLogin/popupLogin.component';
+import { LoginPopupComponent } from '../loginPopup/loginPopup.component';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { PopupErrorComponent } from '../popupError/popupError.component';
+import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
 import { ParticleEffectSquare } from '../../extras/particle-effect-square';
 import { GlobalService } from '../../services/global.service';
 
@@ -22,7 +22,7 @@ interface LoginResponse {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ RouterOutlet, AppComponent, ReactiveFormsModule, ButtonComponent, PopupLoginComponent, CommonModule, PopupErrorComponent ],
+  imports: [ RouterOutlet, AppComponent, ReactiveFormsModule, ButtonComponent, LoginPopupComponent, CommonModule, ErrorPopupComponent ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -47,7 +47,7 @@ export class LoginComponent implements OnInit {
       password: this.loginForm.get('password')?.value || ''
     };
 
-  this.http.post<LoginResponse>(`${this.globalService.apiUrl}/api/clientes/login`, formData).subscribe({
+  this.http.post<LoginResponse>(`${this.globalService.apiUrl}/api/customers/login`, formData).subscribe({
       next: (result) => {
         console.log("Respuesta del backend:", result);
         if (result && result.success) {

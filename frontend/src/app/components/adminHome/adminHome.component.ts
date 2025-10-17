@@ -7,13 +7,13 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-inicioAdmin',
+  selector: 'app-admin-home',
   standalone: true,
   imports: [ AppComponent, ButtonComponent, CommonModule ],
-  templateUrl: './inicioAdmin.component.html',
-  styleUrl: './inicioAdmin.component.css',
+  templateUrl: './adminHome.component.html',
+  styleUrl: './adminHome.component.css',
 })
-export class InicioAdminComponent implements OnInit, AfterViewInit, OnDestroy{
+export class AdminHomeComponent implements OnInit, AfterViewInit, OnDestroy{
   @ViewChild('viewport') viewport!: ElementRef;
   router = inject(Router);
   urlsImagenes: string[] = [];

@@ -3,13 +3,13 @@ import { ButtonComponent } from '../button/button.component';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-popupError',
+  selector: 'app-error-popup',
   standalone: true,
   imports: [ ButtonComponent, CommonModule ],
-  templateUrl: './popupError.component.html',
-  styleUrl: './popupError.component.css'
+  templateUrl: './errorPopup.component.html',
+  styleUrl: './errorPopup.component.css'
 })
-export class PopupErrorComponent {
+export class ErrorPopupComponent {
   @Input() text = '';
   @Input() textAux = '';
   @Input() textButton = 'Reintentar';

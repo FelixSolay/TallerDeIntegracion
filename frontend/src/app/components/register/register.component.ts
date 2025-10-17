@@ -2,8 +2,8 @@ import { Component, inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterOutlet, Router } from '@angular/router';
 import { ButtonComponent } from '../button/button.component';
-import { PopupLoginComponent } from '../popupLogin/popupLogin.component';
-import { PopupErrorComponent } from '../popupError/popupError.component';
+import { LoginPopupComponent } from '../loginPopup/loginPopup.component';
+import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { GlobalService } from '../../services/global.service';
@@ -12,7 +12,7 @@ import { GlobalService } from '../../services/global.service';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ RouterOutlet, ReactiveFormsModule, ButtonComponent, PopupLoginComponent, PopupErrorComponent, CommonModule ],
+  imports: [ RouterOutlet, ReactiveFormsModule, ButtonComponent, LoginPopupComponent, ErrorPopupComponent, CommonModule ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css'
 })
@@ -51,7 +51,7 @@ export class RegisterComponent implements OnInit {
 
 
 
-    this.http.post<any>(`${this.globalService.apiUrl}/api/clientes/register`, formData)
+    this.http.post<any>(`${this.globalService.apiUrl}/api/customers/register`, formData)
     .subscribe({
       next: (result) => {
         console.log('Respuesta del servidor:', result);

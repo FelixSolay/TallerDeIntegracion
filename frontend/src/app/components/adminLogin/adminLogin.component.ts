@@ -3,8 +3,8 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ButtonComponent } from '../button/button.component';
-import { PopupErrorComponent } from '../popupError/popupError.component';
-import { PopupLoginComponent } from '../popupLogin/popupLogin.component';
+import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
+import { LoginPopupComponent } from '../loginPopup/loginPopup.component';
 import { GlobalService } from '../../services/global.service';
 
 interface AdminLoginResponse {
@@ -15,13 +15,13 @@ interface AdminLoginResponse {
 }
 
 @Component({
-  selector: 'app-login-admin',
+  selector: 'app-admin-login',
   standalone: true,
-  imports: [ ReactiveFormsModule, CommonModule, ButtonComponent, PopupErrorComponent, PopupLoginComponent ],
-  templateUrl: './loginAdmin.component.html',
-  styleUrl: './loginAdmin.component.css'
+  imports: [ ReactiveFormsModule, CommonModule, ButtonComponent, ErrorPopupComponent, LoginPopupComponent ],
+  templateUrl: './adminLogin.component.html',
+  styleUrl: './adminLogin.component.css'
 })
-export class LoginAdminComponent implements OnInit {
+export class AdminLoginComponent implements OnInit {
   loginForm = new FormGroup({
     mail: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', Validators.required)

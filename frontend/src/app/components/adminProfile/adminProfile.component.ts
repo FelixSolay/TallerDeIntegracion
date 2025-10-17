@@ -4,16 +4,16 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { GlobalService } from '../../services/global.service';
-import { PopupErrorComponent } from '../popupError/popupError.component';
+import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
 
 @Component({
-	selector: 'app-perfil-administrador',
+	selector: 'app-admin-profile',
 	standalone: true,
-	imports: [ReactiveFormsModule, CommonModule, PopupErrorComponent],
-	templateUrl: './perfilAdministrador.component.html',
-	styleUrls: ['./perfilAdministrador.component.css']
+	imports: [ReactiveFormsModule, CommonModule, ErrorPopupComponent],
+	templateUrl: './adminProfile.component.html',
+	styleUrls: ['./adminProfile.component.css']
 })
-export class PerfilAdministradorComponent implements OnInit {
+export class AdminProfileComponent implements OnInit {
 	perfilForm = new FormGroup({
 		nombre: new FormControl('', Validators.required),
 		mail: new FormControl('', [Validators.email]),

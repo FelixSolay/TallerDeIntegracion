@@ -1,5 +1,5 @@
 <div id="container">
-    <h1>Registrar Usuario</h1>
+    <h1>Registrar usuario</h1>
     <div class="card">
         <div id="form">
             <form id="registerForm" [formGroup]="registerForm" (ngSubmit)="onSubmit()">
@@ -30,7 +30,7 @@
                     <div id="campos">
                         <span *ngIf="(registerForm.get('mail')?.invalid && registerForm.get('mail')?.touched) || errorMessage == 'Mail no válido'" id="error">
                             <span *ngIf="registerForm.get('mail')?.hasError('required')">El correo electrónico es obligatorio</span>
-                            <span *ngIf="registerForm.get('mail')?.hasError('email') || errorMessage == 'Mail no válido'">El correo electrónico no tiene un formato válido</span>
+                            <span *ngIf="registerForm.get('mail')?.hasError('email') || errorMessage == 'Mail no válido'">El correo electrónico no es válido</span>
                         </span>
                         <input type="email" id="mail" name="mail" formControlName="mail" required>
                         <label for="mail" class="label">Mail</label>
@@ -40,7 +40,7 @@
                     <div id="campos">
                         <div *ngIf="registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched" id="error">
                             <span *ngIf="registerForm.get('telefono')?.hasError('required')">El teléfono es obligatorio</span>
-                            <span *ngIf="registerForm.get('telefono')?.hasError('pattern')">El formato del teléfono no es válido</span>
+                            <span *ngIf="registerForm.get('telefono')?.hasError('pattern')">El teléfono no es válido</span>
                         </div>
                         <input type="tel" id="telefono" name="telefono" formControlName="telefono" required>
                         <label for="telefono" class="label">Teléfono</label>
@@ -76,16 +76,16 @@
 
 
 <!--El usuario se registra correctamente-->
-<app-popupLogin *ngIf="popup == 'success'" [type]="type"></app-popupLogin>
+<app-login-popup *ngIf="popup == 'success'" [type]="type"></app-login-popup>
 
 <!--El usuario ya se encuentra registrado-->
-<app-popupError *ngIf="popup == 'alreadyExists'" text="El mail ya se encuentra registrado" textAux="Por favor inicie sesión" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'alreadyExists'" text="El mail ya se encuentra registrado" textAux="Por favor inicie sesión" [closePopup]="close.bind(this)"></app-error-popup>
 
 <!--Las contraseñas no coinciden-->
-<app-popupError *ngIf="popup == 'wrongPassword'" text="Las contraseñas no coinciden" textAux="Por favor ingrese su contraseña deseada nuevamente en ambos campos" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'wrongPassword'" text="Las contraseñas no coinciden" textAux="Por favor ingrese su contraseña deseada nuevamente en ambos campos" [closePopup]="close.bind(this)"></app-error-popup>
 
 <!--Formato de E-Mail inválido-->
-<app-popupError *ngIf="popup == 'badEmail'" text="Formato de E-Mail inválido" textAux="Por favor ingrese su mail nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'badEmail'" text="Formato de E-Mail inválido" textAux="Por favor ingrese su mail nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
 <!--Formato de Teléfono inválido-->
-<app-popupError *ngIf="popup == 'badTelefono'" text="Formato de teléfono inválido" textAux="Por favor ingrese un número de teléfono válido" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'badTelefono'" text="Formato de teléfono inválido" textAux="Por favor ingrese un número de teléfono válido" [closePopup]="close.bind(this)"></app-error-popup>

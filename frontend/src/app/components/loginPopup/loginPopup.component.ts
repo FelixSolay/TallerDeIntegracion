@@ -5,13 +5,13 @@ import { Router } from '@angular/router';
 import { GlobalService } from '../../services/global.service';
 
 @Component({
-  selector: 'app-popupLogin',
+  selector: 'app-login-popup',
   standalone: true,
   imports: [ ButtonComponent, CommonModule ],
-  templateUrl: './popupLogin.component.html',
-  styleUrl: './popupLogin.component.css'
+  templateUrl: './loginPopup.component.html',
+  styleUrl: './loginPopup.component.css'
 })
-export class PopupLoginComponent implements OnInit {
+export class LoginPopupComponent implements OnInit {
   @Input() type = '';
   @Output() closePopup = new EventEmitter<void>();
   cantType = 1;

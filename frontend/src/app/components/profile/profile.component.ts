@@ -5,16 +5,16 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { GlobalService } from '../../services/global.service';
 import { ButtonComponent } from '../button/button.component';
-import { PopupErrorComponent } from '../popupError/popupError.component';
+import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
 
 @Component({
-  selector: 'app-perfil',
+  selector: 'app-profile',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, ButtonComponent, PopupErrorComponent],
-  templateUrl: './perfil.component.html',
-  styleUrl: './perfil.component.css'
+  imports: [ReactiveFormsModule, CommonModule, ButtonComponent, ErrorPopupComponent],
+  templateUrl: './profile.component.html',
+  styleUrl: './profile.component.css'
 })
-export class PerfilComponent implements OnInit {
+export class ProfileComponent implements OnInit {
   
   perfilForm = new FormGroup({
     nombre: new FormControl('', Validators.required),
@@ -71,7 +71,7 @@ export class PerfilComponent implements OnInit {
     // OBTENER DATOS COMPLETOS DESDE EL BACKEND
     if (dni && dni.trim() !== '') {
       console.log('=== LLAMANDO AL BACKEND PARA OBTENER DATOS COMPLETOS ===');
-      console.log('URL del backend:', `${this.globalService.apiUrl}/api/clientes/${dni}`);
+      console.log('URL del backend:', `${this.globalService.apiUrl}/api/customers/${dni}`);
       this.getUserDetails(dni);
     } else {
       console.error('❌ No hay DNI disponible para cargar datos del usuario');
@@ -81,9 +81,9 @@ export class PerfilComponent implements OnInit {
   getUserDetails(dni: string): void {
     console.log('=== INTENTANDO OBTENER DATOS REALES ===');
     console.log('DNI del usuario:', dni);
-    console.log('URL que se va a llamar:', `${this.globalService.apiUrl}/api/clientes/${dni}`);
+    console.log('URL que se va a llamar:', `${this.globalService.apiUrl}/api/customers/${dni}`);
     
-    this.http.get<any>(`${this.globalService.apiUrl}/api/clientes/${dni}`)
+    this.http.get<any>(`${this.globalService.apiUrl}/api/customers/${dni}`)
       .subscribe({
         next: (result) => {
           console.log('=== ¡RESPUESTA EXITOSA DEL BACKEND! ===');
@@ -165,7 +165,7 @@ export class PerfilComponent implements OnInit {
 
     console.log('Datos a enviar al servidor:', formData);
 
-    this.http.put<any>(`${this.globalService.apiUrl}/api/clientes/update`, formData)
+    this.http.put<any>(`${this.globalService.apiUrl}/api/customers/update`, formData)
       .subscribe({
         next: (result) => {
           console.log('Respuesta del servidor al actualizar:', result);
@@ -219,7 +219,7 @@ export class PerfilComponent implements OnInit {
 
   confirmarEliminacion(): void {
     this.popup = '';
-    this.http.delete<any>(`${this.globalService.apiUrl}/api/clientes/${this.userDni}`)
+    this.http.delete<any>(`${this.globalService.apiUrl}/api/customers/${this.userDni}`)
       .subscribe({
         next: (result) => {
           if (result.success) {

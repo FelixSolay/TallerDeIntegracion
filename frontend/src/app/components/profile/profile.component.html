@@ -24,14 +24,14 @@
                             <label for="telefono">Teléfono</label>
                             <input type="tel" id="telefono" formControlName="telefono" placeholder="011 1234-5678">
                             <div *ngIf="perfilForm.get('telefono')?.invalid && perfilForm.get('telefono')?.touched" id="error">
-                                <span *ngIf="perfilForm.get('telefono')?.hasError('pattern')">El formato del teléfono no es válido</span>
+                                <span *ngIf="perfilForm.get('telefono')?.hasError('pattern')">El teléfono no es válido</span>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="mail">Mail</label>
                             <input type="email" id="mail" formControlName="mail" placeholder="nombre@mail.com">
                             <div *ngIf="perfilForm.get('mail')?.invalid && perfilForm.get('mail')?.touched" id="error">
-                                <span *ngIf="perfilForm.get('mail')?.hasError('email')">El correo electrónico no tiene un formato válido</span>
+                                <span *ngIf="perfilForm.get('mail')?.hasError('email')">El correo electrónico no es válido</span>
                             </div>
                         </div>
                     </div>
@@ -42,7 +42,7 @@
                             <input type="text" id="direccion" formControlName="domicilio" placeholder="Calle 123">
                         </div>
                         <div class="form-group">
-                            <label for="codigoPostal">Código Postal</label>
+                            <label for="codigoPostal">Código postal</label>
                             <input type="text" id="codigoPostal" formControlName="codigoPostal" placeholder="1234">
                             <div *ngIf="perfilForm.get('codigoPostal')?.invalid && perfilForm.get('codigoPostal')?.touched" id="error">
                                 El código postal debe tener entre 4 y 8 dígitos
@@ -103,34 +103,34 @@
     </div>
 
 <!-- Popups de error y éxito -->
-<app-popupError *ngIf="popup == 'success'" text="Perfil actualizado exitosamente" textAux="Sus datos han sido guardados correctamente" textButton="Aceptar" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'success'" text="Perfil actualizado exitosamente" textAux="Sus datos han sido guardados correctamente" textButton="Aceptar" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'mailExists'" text="El email ya está en uso" textAux="Por favor ingrese otro correo electrónico" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'mailExists'" text="El email ya está en uso" textAux="Por favor ingrese otro correo electrónico" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'badEmail'" text="Formato de E-Mail inválido" textAux="Por favor ingrese su mail nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'badEmail'" text="Formato de E-Mail inválido" textAux="Por favor ingrese su mail nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'badTelefono'" text="Formato de teléfono inválido" textAux="Por favor ingrese un número de teléfono válido" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'badTelefono'" text="Formato de teléfono inválido" textAux="Por favor ingrese un número de teléfono válido" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'badCodigoPostal'" text="Formato de código postal inválido" textAux="El código postal debe tener entre 4 y 8 dígitos" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'badCodigoPostal'" text="Formato de código postal inválido" textAux="El código postal debe tener entre 4 y 8 dígitos" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'error'" text="Error al actualizar perfil" textAux="Por favor intente nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'error'" text="Error al actualizar perfil" textAux="Por favor intente nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'errorCargar'" text="Error al cargar datos" textAux="No se pudieron obtener los datos del usuario" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'errorCargar'" text="Error al cargar datos" textAux="No se pudieron obtener los datos del usuario" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'errorEliminar'" text="Error al eliminar cuenta" textAux="No se pudo eliminar la cuenta" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'errorEliminar'" text="Error al eliminar cuenta" textAux="No se pudo eliminar la cuenta" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'missingRequired'" text="Campos obligatorios faltantes" textAux="Nombre y apellido son obligatorios" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'missingRequired'" text="Campos obligatorios faltantes" textAux="Nombre y apellido son obligatorios" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'serverError'" text="Error interno del servidor" textAux="Por favor intente nuevamente en unos momentos" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'serverError'" text="Error interno del servidor" textAux="Por favor intente nuevamente en unos momentos" [closePopup]="close.bind(this)"></app-error-popup>
 
-<app-popupError *ngIf="popup == 'networkError'" text="Error de conexión" textAux="Verifique su conexión a internet e intente nuevamente" [closePopup]="close.bind(this)"></app-popupError>
+<app-error-popup *ngIf="popup == 'networkError'" text="Error de conexión" textAux="Verifique su conexión a internet e intente nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
 
 <!-- Popup de confirmación personalizado -->
 <div *ngIf="popup == 'confirmarEliminar'" class="background" (click)="close()">
   <div class="popup-confirmation" (click)="$event.stopPropagation()">
     <h3>Confirmar eliminación</h3>
     <p>¿Está seguro que desea eliminar su cuenta?</p>
-    <p class="warning">Esta acción no se puede deshacer.</p>
+    <p class="warning">Esta acción no puede deshacerse.</p>
     <div class="buttons-container">
       <button class="btn-red" (click)="confirmarEliminacion()">Sí, eliminar</button>
       <button class="btn-blue-secondary" (click)="close()">Cancelar</button>
