@@ -1,114 +1,25 @@
-import { AfterViewInit, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { AppComponent } from '../../app.component';
-import { ButtonComponent } from '../button/button.component';
+import { Component, inject, OnInit } from '@angular/core';
 import { GlobalService } from '../../services/global.service';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-admin-home',
   standalone: true,
-  imports: [ AppComponent, ButtonComponent, CommonModule ],
+  imports: [ CommonModule ],
   templateUrl: './adminHome.component.html',
   styleUrl: './adminHome.component.css',
 })
-export class AdminHomeComponent implements OnInit, AfterViewInit, OnDestroy{
-  @ViewChild('viewport') viewport!: ElementRef;
+export class AdminHomeComponent implements OnInit {
   router = inject(Router);
-  urlsImagenes: string[] = [];
-  currentIndex = 0;
-  autoplayInterval: any;
-  autoplayDelay = 3000; // 3 segundos
-  isHovered = false;
-  shouldAnimate = true;
-  itemWidth = 0;
 
-
-  constructor(private globalService: GlobalService, private http: HttpClient) {}
+  constructor(private globalService: GlobalService) {}
 
   ngOnInit(): void {
     this.globalService.checkLoggedIn("/inicioAdministrador");
-    this.obtenerProductos();
-    this.startAutoplay();
   }
 
-  ngAfterViewInit() {
-    this.calculateItemWidth();
-    window.addEventListener('resize', this.calculateItemWidth.bind(this));
-  }
-  ngOnDestroy(): void {
-    this.stopAutoplay();
-  }
-
-  obtenerProductos() {
-    // TODO: Implementar llamada a API de productos del supermercado
-    // this.http.get<any[]>('http://localhost:3000/api/productos')
-    //   .subscribe(data => {
-    //     this.urlsImagenes = data.map(p => p.imagenUrl);
-    //     this.currentIndex = 0;
-    //   });
-  }
-
-  calculateItemWidth() {
-    if (this.viewport) {
-      const viewportWidth = this.viewport.nativeElement.clientWidth;
-      this.itemWidth = (viewportWidth / 3) - 20; // margen total 20px (10px a cada lado)
-    }
-  }
-
-  previous() {
-    this.pauseAutoplay();
-    this.shouldAnimate = true;
-    if (this.currentIndex === 0) {
-      this.currentIndex = this.urlsImagenes.length - 1;
-    } else {
-      this.currentIndex--;
-    }
-  }
-
-  next() {
-    this.pauseAutoplay();
-    this.shouldAnimate = true;
-    if (this.currentIndex === this.urlsImagenes.length - 1) {
-      this.currentIndex = 0;
-    } else {
-      this.currentIndex++;
-    }
-  }
-
-  startAutoplay() {
-    this.autoplayInterval = setInterval(() => {
-      if (!this.isHovered) {
-        this.next();
-      }
-    }, this.autoplayDelay);
-  }
-
-  stopAutoplay() {
-    clearInterval(this.autoplayInterval);
-  }
-
-  pauseAutoplay() {
-    this.stopAutoplay();
-    // Reiniciar autoplay luego de 5 segundos sin interacción
-    setTimeout(() => this.startAutoplay(), 5000);
-  }
-
-  onMouseEnter() {
-    this.isHovered = true;
-    this.pauseAutoplay();
-  }
-
-  onMouseLeave() {
-    this.isHovered = false;
-  }
-
-  getTrackStyles(): any {
-    const offset = this.currentIndex * (this.itemWidth + 20); // ancho + margen total
-    return {
-      transform: `translateX(-${offset}px)`,
-      transition: this.shouldAnimate ? 'transform 1.2s ease-in-out' : 'none'
-    };
+  navigateTo(route: string): void {
+    this.router.navigate([route]);
   }
 }

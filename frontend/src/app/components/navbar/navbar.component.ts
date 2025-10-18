@@ -3,6 +3,8 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { CommonModule, NgIf } from '@angular/common';
 import { filter } from 'rxjs';
 import { ButtonComponent } from '../button/button.component';
+import { CategoriaService, Categoria } from '../../services/categoria.service';
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
@@ -18,6 +20,9 @@ export class NavbarComponent implements OnInit {
   color='blanco';
   isMobile: boolean = false;
   showUserMenu: boolean = false;
+  showCategoriesMenu: boolean = false;
+  categorias: any[] = [];
+  private categoryMenuTimeout: any;
   
   comprobarRuta() {
     const currentUrl = this.router.url;
@@ -54,7 +59,7 @@ export class NavbarComponent implements OnInit {
     }
   }
 
-  constructor(private router: Router) {};
+  constructor(private router: Router, private categoriaService: CategoriaService) {};
 
   ngOnInit() {
     this.checkScreenSize();
@@ -66,7 +71,22 @@ export class NavbarComponent implements OnInit {
       });
 
     this.comprobarRuta();
-    this.conseguirDatos(); // Llamar al inicializar también
+    this.conseguirDatos();
+    this.cargarCategorias();
+  }
+
+  cargarCategorias(): void {
+    this.categoriaService.obtenerNavbar().subscribe({
+      next: (response) => {
+        if (response.success && response.categorias) {
+          this.categorias = response.categorias;
+          console.log('Categorías cargadas:', this.categorias);
+        }
+      },
+      error: (error) => {
+        console.error('Error al cargar categorías:', error);
+      }
+    });
   }
 
   // Escucha los cambios de tamaño de la ventana
@@ -91,10 +111,43 @@ export class NavbarComponent implements OnInit {
 
   toggleUserMenu(): void {
     this.showUserMenu = !this.showUserMenu;
+    this.showCategoriesMenu = false;
+  }
+
+  toggleCategoriesMenu(): void {
+    console.log('Toggle categories menu', this.showCategoriesMenu);
+    this.showCategoriesMenu = !this.showCategoriesMenu;
+    this.showUserMenu = false;
   }
 
   closeUserMenu(): void {
     this.showUserMenu = false;
+  }
+
+  closeCategoriesMenu(): void {
+    this.showCategoriesMenu = false;
+  }
+
+  openCategoriesMenu(): void {
+    if (this.categoryMenuTimeout) {
+      clearTimeout(this.categoryMenuTimeout);
+    }
+    this.showCategoriesMenu = true;
+    console.log('Menú abierto:', this.showCategoriesMenu, 'Categorías:', this.categorias.length);
+  }
+
+  closeCategoriesMenuDelayed(): void {
+    this.categoryMenuTimeout = setTimeout(() => {
+      this.showCategoriesMenu = false;
+      console.log('Menú cerrado');
+    }, 200);
+  }
+
+  setActiveCategory(category: any): void {
+    // Desactivar todas las categorías
+    this.categorias.forEach(cat => cat.hover = false);
+    // Activar solo la categoría sobre la que pasó el mouse
+    category.hover = true;
   }
 
   goToProfile(): void {
@@ -122,6 +175,9 @@ export class NavbarComponent implements OnInit {
     const target = event.target as HTMLElement;
     if (!target.closest('.user-menu-container')) {
       this.closeUserMenu();
+    }
+    if (!target.closest('.categories-menu-container')) {
+      this.closeCategoriesMenu();
     }
   }
 }

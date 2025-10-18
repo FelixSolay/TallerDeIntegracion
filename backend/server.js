@@ -384,6 +384,417 @@ app.delete('/api/customers/:dni', async (req, res) => {
     }
 });
 
+// ============================================
+// CATEGORÍAS
+// ============================================
+
+// Función auxiliar para generar slug
+function generateSlug(nombre) {
+    return nombre
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+        .replace(/[^a-z0-9\s-]/g, '') // Eliminar caracteres especiales
+        .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+        .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
+        .trim();
+}
+
+// Definir esquema para categorías
+const categoriaSchema = new mongoose.Schema({
+    nombre: { 
+        type: String, 
+        required: true,
+        trim: true
+    },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    descripcion: { 
+        type: String, 
+        default: '' 
+    },
+    nivel: { 
+        type: Number, 
+        required: true,
+        enum: [0, 1, 2],  // 0=Principal, 1=Subcategoría, 2=Sub-subcategoría
+        default: 0
+    },
+    categoriaPadreId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'categorias',
+        default: null
+    },
+    icono: {
+        type: String,
+        default: ''
+    },
+    imagen: { 
+        type: String,
+        default: '' 
+    },
+    activa: { 
+        type: Boolean, 
+        default: true 
+    },
+    orden: { 
+        type: Number,
+        default: 0 
+    },
+    mostrarEnNavbar: {
+        type: Boolean,
+        default: true
+    },
+    fechaCreacion: { 
+        type: Date, 
+        default: Date.now 
+    }
+});
+
+categoriaSchema.index({ nombre: 1, categoriaPadreId: 1 }, { unique: true }); // Índice compuesto para evitar duplicados en el mismo nivel
+
+const Categoria = mongoose.model('categorias', categoriaSchema);
+
+// Subir imagen de categoría
+app.post('/api/categorias/upload-imagen', upload.single('imagen'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, reason: 'noImagenProporcionada' });
+        }
+        
+        // Leer el archivo y convertirlo a Base64
+        const imageBuffer = fs.readFileSync(req.file.path);
+        const base64Image = imageBuffer.toString('base64');
+        const mimeType = req.file.mimetype;
+        
+        // Crear la URL de datos (data URL) para Base64
+        const imageUrl = `data:${mimeType};base64,${base64Image}`;
+
+        // Eliminar archivo temporal
+        fs.unlinkSync(req.file.path);
+        
+        res.json({ 
+            success: true, 
+            imageUrl: imageUrl
+        });
+
+    } catch (error) {
+        console.error('Error al procesar imagen:', error);
+        
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        
+        res.status(500).json({ success: false, reason: 'errorSubidaImagen', error: error.message });
+    }
+});
+
+// Crear nueva categoría
+app.post('/api/categorias', async (req, res) => {
+    try {
+        let { nombre, descripcion, nivel, categoriaPadreId, icono, imagen, orden } = req.body;
+        
+        if (!nombre || nombre.trim() === '') {
+            return res.status(400).json({ success: false, reason: 'nombreRequerido' });
+        }
+        
+        nombre = nombre.trim();
+
+        if (nivel === undefined || nivel === null) {
+            return res.status(400).json({ success: false, reason: 'nivelRequerido' });
+        }
+        
+        if (![0, 1, 2].includes(nivel)) {
+            return res.status(400).json({ success: false, reason: 'nivelInvalido' });
+        }
+
+        if (nivel > 0 && !categoriaPadreId) {
+            return res.status(400).json({ success: false, reason: 'padreRequerido' });
+        }
+    
+        if (categoriaPadreId) {
+            const padre = await Categoria.findById(categoriaPadreId);
+            if (!padre) {
+                return res.status(404).json({ success: false, reason: 'padreNoEncontrado' });
+            }
+
+            if (padre.nivel !== nivel - 1) {
+                return res.status(400).json({ success: false, reason: 'nivelPadreIncorrecto' });
+            }
+        }
+
+        let slug = generateSlug(nombre);
+        let slugFinal = slug;
+        let contador = 1;
+ 
+        while (await Categoria.findOne({ slug: slugFinal })) {
+            slugFinal = `${slug}-${contador}`;
+            contador++;
+        }
+
+        const existente = await Categoria.findOne({ 
+            nombre: nombre, 
+            categoriaPadreId: categoriaPadreId || null 
+        });
+        
+        if (existente) {
+            return res.status(400).json({ success: false, reason: 'categoriaExiste' });
+        }
+        
+        const nuevaCategoria = await Categoria.create({
+            nombre,
+            slug: slugFinal,
+            descripcion: descripcion || '',
+            nivel,
+            categoriaPadreId: categoriaPadreId || null,
+            icono: icono || '',
+            imagen: imagen || '',
+            orden: orden || 0,
+            activa: true,
+            mostrarEnNavbar: nivel <= 1
+        });
+        
+        console.log('✅ Categoría creada:', nuevaCategoria.nombre);
+        res.status(201).json({ success: true, categoria: nuevaCategoria });
+        
+    } catch (error) {
+        console.error('Error al crear categoría:', error);
+        res.status(500).json({ success: false, reason: 'serverError', error: error.message });
+    }
+});
+
+// Obtener todas las categorías
+app.get('/api/categorias', async (req, res) => {
+    try {
+        const categorias = await Categoria.find()
+            .sort({ nivel: 1, orden: 1, nombre: 1 });
+        
+        res.json({ success: true, categorias });
+    } catch (error) {
+        console.error('Error al obtener categorías:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener categorías principales (nivel 0) para navbar
+app.get('/api/categorias/principales', async (req, res) => {
+    try {
+        const principales = await Categoria.find({ nivel: 0, activa: true })
+            .sort({ orden: 1, nombre: 1 });
+        
+        res.json({ success: true, categorias: principales });
+    } catch (error) {
+        console.error('Error al obtener categorías principales:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener estructura completa para navbar (con subcategorías anidadas)
+app.get('/api/categorias/navbar', async (req, res) => {
+    try {
+        const principales = await Categoria.find({ nivel: 0, activa: true })
+            .sort({ orden: 1, nombre: 1 })
+            .lean();
+        
+        for (let principal of principales) {
+            const subcategorias = await Categoria.find({ 
+                categoriaPadreId: principal._id, 
+                activa: true,
+                nivel: 1
+            })
+            .sort({ orden: 1, nombre: 1 })
+            .lean();
+            
+            for (let sub of subcategorias) {
+                const subSubs = await Categoria.find({ 
+                    categoriaPadreId: sub._id, 
+                    activa: true,
+                    nivel: 2
+                })
+                .sort({ orden: 1, nombre: 1 })
+                .lean();
+                
+                sub.subcategorias = subSubs;
+            }
+            
+            principal.subcategorias = subcategorias;
+        }
+        
+        res.json({ success: true, categorias: principales });
+    } catch (error) {
+        console.error('Error al obtener navbar:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener subcategorías de una categoría específica
+app.get('/api/categorias/:id/subcategorias', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const subcategorias = await Categoria.find({ categoriaPadreId: id, activa: true })
+            .sort({ orden: 1, nombre: 1 });
+        
+        res.json({ success: true, subcategorias });
+    } catch (error) {
+        console.error('Error al obtener subcategorías:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener árbol completo desde una categoría
+app.get('/api/categorias/:id/arbol', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const categoria = await Categoria.findById(id).lean();
+        if (!categoria) {
+            return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+        }
+        
+        async function obtenerSubcategorias(categoriaId) {
+            const subs = await Categoria.find({ categoriaPadreId: categoriaId, activa: true })
+                .sort({ orden: 1, nombre: 1 })
+                .lean();
+            
+            for (let sub of subs) {
+                sub.subcategorias = await obtenerSubcategorias(sub._id);
+            }
+            
+            return subs;
+        }
+        
+        categoria.subcategorias = await obtenerSubcategorias(categoria._id);
+        
+        res.json({ success: true, categoria });
+    } catch (error) {
+        console.error('Error al obtener árbol:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener una categoría por ID
+app.get('/api/categorias/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const categoria = await Categoria.findById(id)
+            .populate('categoriaPadreId', 'nombre nivel');
+        
+        if (!categoria) {
+            return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+        }
+        
+        res.json({ success: true, categoria });
+    } catch (error) {
+        console.error('Error al obtener categoría:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener categoría por slug
+app.get('/api/categorias/slug/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        
+        const categoria = await Categoria.findOne({ slug: slug })
+            .populate('categoriaPadreId', 'nombre slug');
+        
+        if (!categoria) {
+            return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+        }
+        
+        res.json({ success: true, categoria });
+    } catch (error) {
+        console.error('Error al obtener categoría por slug:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Actualizar categoría
+app.put('/api/categorias/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        let { nombre, descripcion, icono, imagen, orden, activa } = req.body;
+        
+        const categoria = await Categoria.findById(id);
+        if (!categoria) {
+            return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+        }
+        
+        if (nombre !== undefined) {
+            nombre = nombre.trim();
+            if (nombre === '') {
+                return res.status(400).json({ success: false, reason: 'nombreRequerido' });
+            }
+            
+            const existente = await Categoria.findOne({ 
+                nombre: nombre, 
+                categoriaPadreId: categoria.categoriaPadreId,
+                _id: { $ne: id }
+            });
+            
+            if (existente) {
+                return res.status(400).json({ success: false, reason: 'categoriaExiste' });
+            }
+            
+            categoria.nombre = nombre;
+            categoria.slug = generateSlug(nombre);
+        }
+        
+        if (descripcion !== undefined) categoria.descripcion = descripcion;
+        if (icono !== undefined) categoria.icono = icono;
+        if (imagen !== undefined) categoria.imagen = imagen;
+        if (orden !== undefined) categoria.orden = orden;
+        if (activa !== undefined) categoria.activa = activa;
+        
+        await categoria.save();
+        
+        console.log('✅ Categoría actualizada:', categoria.nombre);
+        res.json({ success: true, categoria });
+        
+    } catch (error) {
+        console.error('Error al actualizar categoría:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Eliminar categoría
+app.delete('/api/categorias/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const categoria = await Categoria.findById(id);
+        if (!categoria) {
+            return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+        }
+        
+        const tieneSubcategorias = await Categoria.findOne({ categoriaPadreId: id });
+        if (tieneSubcategorias) {
+            return res.status(400).json({ 
+                success: false, 
+                reason: 'tieneSubcategorias',
+                message: 'No se puede eliminar una categoría que tiene subcategorías' 
+            });
+        }
+        
+        // TODO: Verificar que no tenga productos asignados
+        
+        await Categoria.findByIdAndDelete(id);
+        
+        console.log('✅ Categoría eliminada:', categoria.nombre);
+        res.json({ success: true, message: 'Categoría eliminada correctamente' });
+        
+    } catch (error) {
+        console.error('Error al eliminar categoría:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
 // Iniciar servidor
 app.listen(port, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${port}`);

@@ -8,6 +8,44 @@
     <a routerLink="/"><img src="images/Logo.png" class="logo"></a>
 
     <ul>
+        <li class="categories-menu-container" (click)="toggleCategoriesMenu()">
+            <a>
+                <span class="menu-icon">☰</span>
+                <span *ngIf="!isMobile">Categorías</span>
+            </a>
+        </li>
+        <li class="categories-dropdown-wrapper" *ngIf="showCategoriesMenu">
+            <div class="categories-dropdown" (click)="$event.stopPropagation()">
+                    <div class="categories-left">
+                    <div *ngFor="let cat0 of categorias" 
+                         class="category-principal"
+                         [class.active]="cat0.hover"
+                         (mouseenter)="setActiveCategory(cat0)">
+                        <img *ngIf="cat0.imagen" [src]="cat0.imagen" class="cat-img" alt="{{cat0.nombre}}">
+                        <span *ngIf="!cat0.imagen && cat0.icono" class="cat-icon">{{cat0.icono}}</span>
+                        <span *ngIf="!cat0.imagen && !cat0.icono" class="cat-icon">📁</span>
+                        <span class="cat-name">{{cat0.nombre}}</span>
+                        <span class="arrow">›</span>
+                    </div>
+                    </div>
+                    
+                    <div class="categories-right">
+                        <div *ngFor="let cat0 of categorias" class="subcategories-panel" [class.show]="cat0.hover">
+                            <div class="subcategories-columns">
+                                <div *ngFor="let cat1 of cat0.subcategorias" class="subcategory-group">
+                                    <div class="subcategory-title">{{cat1.nombre}}</div>
+                                    <ul *ngIf="cat1.subcategorias && cat1.subcategorias.length > 0">
+                                        <li *ngFor="let cat2 of cat1.subcategorias">
+                                            {{cat2.nombre}}
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </li>
+        <li *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('productos')">
             <a routerLink="/productos">
                 <span *ngIf="!isMobile">Productos</span>
@@ -50,29 +88,37 @@
 
 <!--Administradores-->
 <header *ngIf="validRoute && type == 'Administrador'">
-    <a routerLink="/"><img src="images/Logo.png" class="logo"></a>
+    <a routerLink="/inicioAdministrador"><img src="images/Logo.png" class="logo"></a>
     <ul>
-        <li [class.active]="isActive('productosAdministrador')">
-            <a routerLink="/productosAdministrador">
-                <span *ngIf="!isMobile">Productos</span>
+        <li [class.active]="isActive('admin/categorias')">
+            <a routerLink="/admin/categorias">
+                <span *ngIf="!isMobile">Categorías</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/home azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/home blanco.png">
             </a>
         </li>
         <li *ngIf="!isMobile">|</li>
-        <li [class.active]="isActive('promocionesAdministrador')">
-            <a routerLink="/promocionesAdministrador">
-                <span *ngIf="!isMobile">Promociones</span>
+        <li [class.active]="isActive('productosAdministrador')" class="disabled-link">
+            <a>
+                <span *ngIf="!isMobile">Productos</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/expensas azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/expensas blanco.png">
             </a>
         </li>
         <li *ngIf="!isMobile">|</li>
-        <li [class.active]="isActive('ventasAdministrador')">
-            <a routerLink="/ventasAdministrador">
-                <span *ngIf="!isMobile">Ventas</span>
+        <li [class.active]="isActive('promocionesAdministrador')" class="disabled-link">
+            <a>
+                <span *ngIf="!isMobile">Promociones</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/contactos azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/contactos blanco.png">
+            </a>
+        </li>
+        <li *ngIf="!isMobile">|</li>
+        <li [class.active]="isActive('ventasAdministrador')" class="disabled-link">
+            <a>
+                <span *ngIf="!isMobile">Ventas</span>
+                <img *ngIf="isMobile && color == 'azul'" src="images/pagar azul.png">
+                <img *ngIf="isMobile && color == 'blanco'" src="images/pagar blanco.png">
             </a>
         </li>
     </ul>
