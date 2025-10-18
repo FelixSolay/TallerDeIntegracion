@@ -1,0 +1,139 @@
+<div id="container2">
+    <div id="container"> 
+            <div class="perfil-content">
+                <form [formGroup]="perfilForm" (ngSubmit)="onSubmit()">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombres">Nombres</label>
+                            <input type="text" id="nombres" formControlName="nombre" placeholder="Nombre">
+                            <div *ngIf="perfilForm.get('nombre')?.invalid && perfilForm.get('nombre')?.touched" id="error">
+                                El nombre es obligatorio
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="apellidos">Apellidos</label>
+                            <input type="text" id="apellidos" formControlName="apellido" placeholder="Apellido">
+                            <div *ngIf="perfilForm.get('apellido')?.invalid && perfilForm.get('apellido')?.touched" id="error">
+                                El apellido es obligatorio
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <input type="tel" id="telefono" formControlName="telefono" placeholder="011 1234-5678">
+                            <div *ngIf="perfilForm.get('telefono')?.invalid && perfilForm.get('telefono')?.touched" id="error">
+                                <span *ngIf="perfilForm.get('telefono')?.hasError('pattern')">El teléfono no es válido</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="mail">Mail</label>
+                            <input type="email" id="mail" formControlName="mail" placeholder="nombre@mail.com">
+                            <div *ngIf="perfilForm.get('mail')?.invalid && perfilForm.get('mail')?.touched" id="error">
+                                <span *ngIf="perfilForm.get('mail')?.hasError('email')">El correo electrónico no es válido</span>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="direccion">Dirección</label>
+                            <input type="text" id="direccion" formControlName="domicilio" placeholder="Calle 123">
+                        </div>
+                        <div class="form-group">
+                            <label for="codigoPostal">Código postal</label>
+                            <input type="text" id="codigoPostal" formControlName="codigoPostal" placeholder="1234">
+                            <div *ngIf="perfilForm.get('codigoPostal')?.invalid && perfilForm.get('codigoPostal')?.touched" id="error">
+                                El código postal debe tener entre 4 y 8 dígitos
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div class="readonly-row">
+                        <div class="readonly-fields">
+                            <div>   
+                                <div class="readonly-group">
+                                    <label class="readonly-label">N° DNI</label>
+                                </div>
+                                <div class="readonly-group">
+                                    {{userDni}}
+                                </div>
+                            </div>   
+                            <div>
+                                <div class="readonly-group">
+                                    <label class="readonly-label">Saldo</label>
+                                </div>
+                                <div class="readonly-group">
+                                    ${{userSaldo | number:'1.2-2'}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="readonly-group saldo">
+                            <div class="saldo-container">
+                                <span class="cart-icon-small">🛒</span>
+                                <span class="saldo-amount">${{userSaldo | number:'1.2-2'}}</span>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div class="buttons-section">
+                        <div class="action-buttons">
+                            <button type="button" class="btn-green" (click)="pedidosEnCurso()">
+                                Pedidos en curso
+                            </button>
+                            <button type="button" class="btn-green" (click)="historialCompras()">
+                                Historial de compras
+                            </button>
+                        </div>
+        
+                        <button type="submit" class="btn-blue-main" [disabled]="perfilForm.invalid || !perfilForm.get('nombre')?.value?.trim() || !perfilForm.get('apellido')?.value?.trim()">
+                            Guardar cambios
+                        </button>
+        
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="bottom-buttons2">
+            <button type="button" class="btn-red" (click)="eliminarCuenta()">
+                Eliminar cuenta
+            </button>
+        </div>
+    </div>
+
+<!-- Popups de error y éxito -->
+<app-error-popup *ngIf="popup == 'success'" text="Perfil actualizado exitosamente" textAux="Sus datos han sido guardados correctamente" textButton="Aceptar" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'mailExists'" text="El email ya está en uso" textAux="Por favor ingrese otro correo electrónico" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'badEmail'" text="Formato de E-Mail inválido" textAux="Por favor ingrese su mail nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'badTelefono'" text="Formato de teléfono inválido" textAux="Por favor ingrese un número de teléfono válido" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'badCodigoPostal'" text="Formato de código postal inválido" textAux="El código postal debe tener entre 4 y 8 dígitos" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'error'" text="Error al actualizar perfil" textAux="Por favor intente nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'errorCargar'" text="Error al cargar datos" textAux="No se pudieron obtener los datos del usuario" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'errorEliminar'" text="Error al eliminar cuenta" textAux="No se pudo eliminar la cuenta" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'missingRequired'" text="Campos obligatorios faltantes" textAux="Nombre y apellido son obligatorios" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'serverError'" text="Error interno del servidor" textAux="Por favor intente nuevamente en unos momentos" [closePopup]="close.bind(this)"></app-error-popup>
+
+<app-error-popup *ngIf="popup == 'networkError'" text="Error de conexión" textAux="Verifique su conexión a internet e intente nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
+
+<!-- Popup de confirmación personalizado -->
+<div *ngIf="popup == 'confirmarEliminar'" class="background" (click)="close()">
+  <div class="popup-confirmation" (click)="$event.stopPropagation()">
+    <h3>Confirmar eliminación</h3>
+    <p>¿Está seguro que desea eliminar su cuenta?</p>
+    <p class="warning">Esta acción no puede deshacerse.</p>
+    <div class="buttons-container">
+      <button class="btn-red" (click)="confirmarEliminacion()">Sí, eliminar</button>
+      <button class="btn-blue-secondary" (click)="close()">Cancelar</button>
+    </div>
+  </div>
+</div>

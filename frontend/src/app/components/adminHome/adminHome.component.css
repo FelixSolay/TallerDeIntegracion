@@ -1,0 +1,220 @@
+:host {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('/images/background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    padding: 20px;
+}
+
+/* Panel de administración */
+.admin-panel {
+    width: 100%;
+    max-width: 1000px;
+    background: white;
+    border-radius: 20px;
+    padding: 50px 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    animation: fadeIn 0.6s ease-in;
+}
+
+/* Header del panel */
+.panel-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 2px solid #47B20E;
+}
+
+.panel-header h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+    color: #09008C;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 16px;
+    color: #47B20E;
+    font-weight: 500;
+}
+
+/* Contenedor de cards */
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    width: 100%;
+}
+
+/* Estilos de las cards */
+.admin-card {
+    background: #f8fdf9;
+    border-radius: 16px;
+    padding: 35px 25px;
+    text-align: center;
+    border: 2px solid #D0E8C3;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-card:not(.disabled):hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(71, 178, 14, 0.2);
+    border-color: #47B20E;
+}
+
+.admin-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f7f7f7;
+    border-color: #e0e0e0;
+}
+
+.admin-card.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Iconos de las cards */
+.card-icon {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+    transition: transform 0.3s ease;
+}
+
+.admin-card:not(.disabled):hover .card-icon {
+    transform: scale(1.1);
+}
+
+.card-icon.categories {
+    background: linear-gradient(135deg, #ffd89b 0%, #ff9a76 100%);
+}
+
+.card-icon.products {
+    background: linear-gradient(135deg, #a8e6cf 0%, #3ecd5e 100%);
+}
+
+.card-icon.promotions {
+    background: linear-gradient(135deg, #fda085 0%, #f093fb 100%);
+}
+
+.card-icon.stats {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Títulos y descripciones */
+.admin-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #09008C;
+}
+
+.admin-card p {
+    margin: 0;
+    font-size: 13px;
+    color: #718096;
+    line-height: 1.5;
+}
+
+/* Badge de próximamente */
+.coming-soon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    :host {
+        padding: 15px;
+        align-items: flex-start;
+        padding-top: 100px;
+    }
+    
+    .admin-panel {
+        padding: 35px 25px;
+    }
+    
+    .panel-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+    }
+    
+    .panel-header h1 {
+        font-size: 26px;
+    }
+    
+    .subtitle {
+        font-size: 14px;
+    }
+    
+    .cards-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .card-icon {
+        width: 75px;
+        height: 75px;
+        font-size: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-panel {
+        padding: 30px 20px;
+        border-radius: 15px;
+    }
+    
+    .panel-header h1 {
+        font-size: 24px;
+    }
+    
+    .admin-card {
+        padding: 30px 20px;
+    }
+    
+    .admin-card h3 {
+        font-size: 16px;
+    }
+    
+    .admin-card p {
+        font-size: 12px;
+    }
+}

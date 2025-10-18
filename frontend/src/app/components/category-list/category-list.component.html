@@ -1,0 +1,138 @@
+<div class="categorias-container">
+  <div class="header">
+    <h2>Gestión de categorías</h2>
+    <button class="btn-primary" (click)="nuevaCategoria()">
+       Nueva categoría
+    </button>
+  </div>
+
+  <div *ngIf="cargando" class="loading">
+    <p>Cargando categorías...</p>
+  </div>
+
+  <div *ngIf="!cargando && categorias.length === 0" class="empty-state">
+    <p>No hay categorías creadas aún.</p>
+    <button class="btn-primary" (click)="nuevaCategoria()">
+      Crear primera categoría
+    </button>
+  </div>
+
+  <div *ngIf="!cargando && categorias.length > 0" class="categorias-tree">
+    <!-- Nivel 0: Categorías Principales -->
+    <div *ngFor="let cat0 of categoriasAgrupadas.nivel0" class="categoria-item nivel-0">
+      <div class="categoria-row">
+        <button 
+          class="expand-btn" 
+          (click)="toggleExpand(cat0._id!)"
+          [class.expanded]="isExpanded(cat0._id!)">
+          {{ isExpanded(cat0._id!) ? '▼' : '►' }}
+        </button>
+        
+        <img *ngIf="cat0.imagen" [src]="cat0.imagen" alt="{{cat0.nombre}}" class="categoria-imagen">
+        <span *ngIf="!cat0.imagen && cat0.icono" class="categoria-icono">{{cat0.icono}}</span>
+        <span *ngIf="!cat0.imagen && !cat0.icono" class="categoria-icono">📁</span>
+        
+        <div class="categoria-info">
+          <span class="categoria-nombre">{{cat0.nombre}}</span>
+          <span class="categoria-nivel">Principal</span>
+        </div>
+        
+        <div class="categoria-acciones">
+          <button class="btn-edit" (click)="editarCategoria(cat0._id!)">Editar</button>
+          <button class="btn-delete" (click)="confirmarEliminar(cat0._id!)">Eliminar</button>
+        </div>
+      </div>
+
+      <!-- Nivel 1: Subcategorías -->
+      <div *ngIf="isExpanded(cat0._id!)" class="subcategorias nivel-1">
+        <div *ngFor="let cat1 of obtenerSubcategorias(cat0._id!, 1)" class="categoria-item">
+          <div class="categoria-row">
+            <button 
+              class="expand-btn" 
+              (click)="toggleExpand(cat1._id!)"
+              [class.expanded]="isExpanded(cat1._id!)">
+              {{ isExpanded(cat1._id!) ? '▼' : '►' }}
+            </button>
+            
+            <span *ngIf="cat1.icono" class="categoria-icono">{{cat1.icono}}</span>
+            <span *ngIf="!cat1.icono" class="categoria-icono">📂</span>
+            
+            <div class="categoria-info">
+              <span class="categoria-nombre">{{cat1.nombre}}</span>
+              <span class="categoria-nivel">Subcategoría</span>
+            </div>
+            
+            <div class="categoria-acciones">
+              <button class="btn-edit" (click)="editarCategoria(cat1._id!)">Editar</button>
+              <button class="btn-delete" (click)="confirmarEliminar(cat1._id!)">Eliminar</button>
+            </div>
+          </div>
+
+          <!-- Nivel 2: Sub-subcategorías -->
+          <div *ngIf="isExpanded(cat1._id!)" class="subcategorias nivel-2">
+            <div *ngFor="let cat2 of obtenerSubcategorias(cat1._id!, 2)" class="categoria-item">
+              <div class="categoria-row">
+                <span class="expand-placeholder"></span>
+                
+                <span class="categoria-icono">📄</span>
+                
+                <div class="categoria-info">
+                  <span class="categoria-nombre">{{cat2.nombre}}</span>
+                  <span class="categoria-nivel">Sub-subcategoría</span>
+                </div>
+                
+                <div class="categoria-acciones">
+                  <button class="btn-edit" (click)="editarCategoria(cat2._id!)">Editar</button>
+                  <button class="btn-delete" (click)="confirmarEliminar(cat2._id!)">Eliminar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Popups -->
+<app-error-popup 
+  *ngIf="popup == 'eliminadaExito'" 
+  text="Categoría eliminada" 
+  textAux="La categoría se eliminó correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorEliminar'" 
+  text="Error al eliminar" 
+  textAux="No se pudo eliminar la categoría" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'tieneSubcategorias'" 
+  text="No se puede eliminar" 
+  textAux="Esta categoría tiene subcategorías. Elimínalas primero." 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorCargar'" 
+  text="Error al cargar" 
+  textAux="No se pudieron cargar las categorías" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<!-- Popup de confirmación de eliminación -->
+<div *ngIf="popup == 'confirmarEliminar'" class="background" (click)="close()">
+  <div class="popup-confirmation" (click)="$event.stopPropagation()">
+    <h3>Confirmar eliminación</h3>
+    <p>¿Estás seguro que deseas eliminar esta categoría?</p>
+    <p class="warning">Esta acción no se puede deshacer.</p>
+    <div class="buttons-container">
+      <button class="btn-red" (click)="eliminarCategoria()">Sí, eliminar</button>
+      <button class="btn-blue-secondary" (click)="close()">Cancelar</button>
+    </div>
+  </div>
+</div>

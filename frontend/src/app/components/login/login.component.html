@@ -1,0 +1,32 @@
+<div id="container">
+    <h1>Iniciar sesión</h1>
+    <div class="card">
+        <div id="form">
+            <form id="loginForm" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <div>
+                    <label for="mail" id="mail">Mail</label>
+                    <input type="text" name="mail" id="mail" formControlName="mail" required>
+                </div>
+                <div>
+                    <label for="password" id="password">Contraseña</label>
+                    <input type="password"  name="password" id="password" formControlName="password" required>
+                </div>
+                <button type="submit" [disabled]="loginForm.invalid">Iniciar sesión</button>
+            </form>
+        </div>
+        <hr>
+        <div id="register">
+            <p>Todavía no tienes cuenta?</p>
+            <app-button buttonClass="register" etiqueta="Registrarse" link="/register"></app-button>
+        </div>
+    </div>
+</div>
+
+<!--El usuario se registra correctamente-->
+<app-login-popup *ngIf="popup == 'success'" [type]="type"></app-login-popup>
+
+<!--Contraseña incorrecta-->
+<app-error-popup *ngIf="popup == 'contraseñaIncorrecta'" text="Contraseña incorrecta" textAux="Por favor ingrese la contraseña nuevamente" [closePopup]="close.bind(this)"></app-error-popup>
+
+<!--Mail no registrado-->
+<app-error-popup *ngIf="popup == 'fail'" text="El mail no se encuentra registrado" textAux="Por favor verifique el mail o registrelo" [closePopup]="close.bind(this)"></app-error-popup>

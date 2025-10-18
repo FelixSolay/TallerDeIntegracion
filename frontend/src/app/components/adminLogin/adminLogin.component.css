@@ -1,0 +1,78 @@
+:host {
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+form {
+    position: relative;
+}
+
+#H1{
+    text-align: center;
+    margin : 10px 10px 10px 10px;
+    color: #09008C;
+    font-size: 24px;
+}
+
+#form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+label { 
+    position: relative;
+    margin: 0px 0px 0px 20px;
+    padding: 0px 5px;
+    font-weight: bold;
+}
+
+#forgot {
+    font-weight: normal;
+    font-size: 16px;
+}
+
+hr {
+    width: 100%;
+    border: 2px solid #09008C;
+    margin: 20px 0px;
+}
+
+#register {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#container {
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Para pantallas de tabletas (mínimo 600px y máximo 1024px de ancho) */
+@media (max-width: 1024px) {
+    hr {
+        margin: 16px 0px;
+    }
+}
+  
+/* Para pantallas de móviles (máximo 600px de ancho) */
+@media (max-width: 600px) {
+    hr {
+        margin: 12px 0px;
+    }
+    
+    #container {
+        width: 70%;
+    }
+}

@@ -1,0 +1,223 @@
+<div class="crear-categoria-container">
+  <div class="header">
+    <h2>{{ esEdicion ? 'Editar categoría' : 'Nueva categoría' }}</h2>
+  </div>
+
+  <form [formGroup]="categoriaForm" (ngSubmit)="onSubmit()" class="categoria-form">
+    
+    <!-- Nivel de categoría -->
+    <div class="form-group">
+      <label for="nivel">Tipo de categoría *</label>
+      <select id="nivel" formControlName="nivel" class="form-control">
+        <option [ngValue]="0">Categoría principal (Nivel 0)</option>
+        <option [ngValue]="1">Subcategoría (Nivel 1)</option>
+        <option [ngValue]="2">Sub-subcategoría (Nivel 2)</option>
+      </select>
+    </div>
+
+    <!-- Categoría Padre (solo si nivel > 0) -->
+    <div class="form-group" *ngIf="categoriaForm.get('nivel')?.value! > 0">
+      <label for="categoriaPadre">Categoría padre *</label>
+      <select 
+        id="categoriaPadre" 
+        formControlName="categoriaPadreId" 
+        class="form-control"
+        required>
+        <option [value]="null">Seleccionar categoría padre...</option>
+        <option *ngFor="let padre of categoriasPadres" [value]="padre._id">
+          {{ padre.nombre }}
+        </option>
+      </select>
+      <small class="form-hint">
+        Selecciona la categoría {{ categoriaForm.get('nivel')?.value === 1 ? 'principal' : 'de nivel 1' }} 
+        a la que pertenece
+      </small>
+    </div>
+
+    <!-- Nombre -->
+    <div class="form-group">
+      <label for="nombre">Nombre de la categoría *</label>
+      <input 
+        type="text" 
+        id="nombre" 
+        formControlName="nombre" 
+        class="form-control"
+        placeholder="Ej: Almacén, Golosinas, Alfajores..."
+        required>
+      <div *ngIf="categoriaForm.get('nombre')?.invalid && categoriaForm.get('nombre')?.touched" class="error-msg">
+        El nombre es obligatorio
+      </div>
+    </div>
+
+    <!-- Descripción -->
+    <div class="form-group">
+      <label for="descripcion">Descripción (Opcional)</label>
+      <textarea 
+        id="descripcion" 
+        formControlName="descripcion" 
+        class="form-control"
+        rows="3"
+        placeholder="Descripción de la categoría...">
+      </textarea>
+    </div>
+
+    <!-- Imagen (solo para nivel 0) -->
+    <div class="form-group" *ngIf="categoriaForm.get('nivel')?.value === 0">
+      <label>Imagen de la categoría (Recomendado)</label>
+      <div class="image-upload-container">
+        
+        <!-- Preview de la imagen -->
+        <div class="image-preview" *ngIf="imagenPreview">
+          <img [src]="imagenPreview" alt="Preview">
+          <button type="button" class="btn-remove-image" (click)="eliminarImagen()">
+            ✕
+          </button>
+        </div>
+
+        <!-- Botón para seleccionar imagen -->
+        <div class="upload-btn-container" *ngIf="!imagenPreview">
+          <label for="imagen" class="btn-upload">
+            📷 Seleccionar imagen
+          </label>
+          <input 
+            type="file" 
+            id="imagen" 
+            accept="image/*"
+            (change)="onImageSelected($event)"
+            style="display: none;">
+          <small class="form-hint">
+            Tamaño recomendado: 128x128px. Máximo 5MB.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Icono (para nivel 1 y 2, opcional) -->
+    <div class="form-group" *ngIf="categoriaForm.get('nivel')?.value! > 0">
+      <label for="icono">Emoji/Icono (Opcional)</label>
+      <input 
+        type="text" 
+        id="icono" 
+        formControlName="icono" 
+        class="form-control"
+        placeholder="🍕 (puedes copiar un emoji aquí)"
+        maxlength="2">
+      <small class="form-hint">
+        Copia y pega un emoji para representar la categoría
+      </small>
+    </div>
+
+    <!-- Orden -->
+    <div class="form-group">
+      <label for="orden">Orden de visualización</label>
+      <input 
+        type="number" 
+        id="orden" 
+        formControlName="orden" 
+        class="form-control"
+        min="0"
+        placeholder="0">
+      <small class="form-hint">
+        Menor número aparece primero (0 = primero)
+      </small>
+    </div>
+
+    <!-- Botones -->
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="cancelar()" [disabled]="cargando">
+        Cancelar
+      </button>
+      <button 
+        type="submit" 
+        class="btn-primary" 
+        [disabled]="categoriaForm.invalid || cargando || subiendoImagen">
+        <span *ngIf="!cargando && !subiendoImagen">
+          {{ esEdicion ? 'Actualizar categoría' : 'Crear categoría' }}
+        </span>
+        <span *ngIf="subiendoImagen">Subiendo imagen...</span>
+        <span *ngIf="cargando && !subiendoImagen">Guardando...</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Popups de éxito -->
+<app-error-popup 
+  *ngIf="popup == 'exito'" 
+  text="¡Categoría creada!" 
+  textAux="La categoría se creó correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'exitoActualizar'" 
+  text="¡Categoría actualizada!" 
+  textAux="Los cambios se guardaron correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<!-- Popups de error -->
+<app-error-popup 
+  *ngIf="popup == 'error'" 
+  text="Error" 
+  textAux="No se pudo guardar la categoría" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'formularioInvalido'" 
+  text="Formulario incompleto" 
+  textAux="Por favor completa todos los campos obligatorios" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'nombreRequerido'" 
+  text="Nombre requerido" 
+  textAux="Debes ingresar un nombre para la categoría" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'padreRequerido'" 
+  text="Categoría padre requerida" 
+  textAux="Debes seleccionar una categoría padre" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'categoriaExiste'" 
+  text="Categoría duplicada" 
+  textAux="Ya existe una categoría con ese nombre en este nivel" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'archivoInvalido'" 
+  text="Archivo inválido" 
+  textAux="Por favor selecciona una imagen válida (JPG, PNG, etc.)" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'archivoGrande'" 
+  text="Archivo muy grande" 
+  textAux="La imagen debe ser menor a 5MB" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorSubirImagen'" 
+  text="Error al subir imagen" 
+  textAux="No se pudo subir la imagen. Intenta nuevamente." 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorCargar'" 
+  text="Error al cargar" 
+  textAux="No se pudo cargar la categoría" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
