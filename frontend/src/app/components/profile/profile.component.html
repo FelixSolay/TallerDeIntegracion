@@ -62,17 +62,18 @@
                             </div>   
                             <div>
                                 <div class="readonly-group">
-                                    <label class="readonly-label">Saldo</label>
+                                    <label class="readonly-label">Saldo a Favor</label>
                                 </div>
-                                <div class="readonly-group">
-                                    ${{userSaldo | number:'1.2-2'}}
+                                <div class="readonly-group saldo-favor">
+                                    {{ formatearPrecio(saldoAFavor) }}
                                 </div>
                             </div>
                         </div>
                         <div class="readonly-group saldo">
                             <div class="saldo-container">
                                 <span class="cart-icon-small">🛒</span>
-                                <span class="saldo-amount">${{userSaldo | number:'1.2-2'}}</span>
+                                <span class="saldo-label">Total Carrito:</span>
+                                <span class="saldo-amount">{{ formatearPrecio(totalCarrito) }}</span>
                             </div>
                         </div>
                     </div>

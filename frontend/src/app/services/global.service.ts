@@ -19,6 +19,14 @@ export class GlobalService {
   url$ = this._url.asObservable();
   imageClass$ = this._imageClass.asObservable();
 
+  // BehaviorSubject para el total del carrito
+  private _cartTotal = new BehaviorSubject<number>(0);
+  cartTotal$ = this._cartTotal.asObservable();
+
+  setCartTotal(total: number): void {
+    this._cartTotal.next(total);
+  }
+
   checkLoggedIn(url: string) {
     if(sessionStorage.getItem("isLoggedIn") != "true") {
       this._url.next(url);

@@ -1,0 +1,150 @@
+<div class="historial-wrapper" *ngIf="!cargando; else cargandoTpl">
+  <div class="header">
+    <div>
+      <h1>Historial de pedidos</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secundario" (click)="irAPedidosEnCurso()">Ver pedidos en curso</button>
+      <p class="subtitulo">Revisa tus pedidos cancelados o entregados y repite compras fácilmente.</p>
+    </div>
+  </div>
+
+  <div class="mensajes">
+    <div class="mensaje info" *ngIf="mensajeInfo">{{ mensajeInfo }}</div>
+    <div class="mensaje error" *ngIf="mensajeError">{{ mensajeError }}</div>
+
+    <div class="resumen" *ngIf="resumenUltimaRepeticion">
+      <div class="resumen-bloque" *ngIf="resumenUltimaRepeticion.agregados.length > 0">
+        <h3>Productos agregados</h3>
+        <ul>
+          <li *ngFor="let agregado of resumenUltimaRepeticion.agregados">
+            <span class="producto">{{ agregado.nombre }}</span>
+            <span class="detalle">+{{ agregado.cantidadAgregada }}</span>
+            <span class="detalle" *ngIf="!agregado.agregadoCompleto">
+              (solicitado {{ agregado.cantidadSolicitada }})
+            </span>
+          </li>
+        </ul>
+      </div>
+      <div class="resumen-bloque" *ngIf="resumenUltimaRepeticion.omitidos.length > 0">
+        <h3>No se pudieron agregar</h3>
+        <ul>
+          <li *ngFor="let omitido of resumenUltimaRepeticion.omitidos">
+            <span class="producto">{{ omitido.nombre }}</span>
+            <span class="detalle">{{ motivoLegible(omitido.motivo) }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sin-pedidos" *ngIf="pedidos.length === 0 && !mensajeError">
+    <p>Aún no tenés pedidos finalizados o cancelados.</p>
+    <div class="sin-pedidos-acciones">
+      <button class="btn-primario" (click)="irAPedidosEnCurso()">Ir a pedidos en curso</button>
+      <button class="btn-secundario" (click)="regresarAlPerfil()">Volver al perfil</button>
+    </div>
+  </div>
+
+  <div class="pedidos-lista" *ngIf="pedidos.length > 0">
+    <div class="pedido" *ngFor="let pedido of pedidos">
+      <div class="pedido-header">
+        <div>
+          <h2>Pedido {{ pedido._id | slice:-6 }}</h2>
+          <p>Creado el {{ formatearFecha(pedido.creadoEl) }}</p>
+          <p class="actualizado" *ngIf="pedido.actualizadoEl">
+            Última actualización: {{ formatearFecha(pedido.actualizadoEl) }}
+          </p>
+        </div>
+        <span [class]="estadoClase(pedido.estado)">{{ pedido.estado | titlecase }}</span>
+      </div>
+
+      <div class="pedido-detalle">
+        <div>
+          <span class="label">Total:</span>
+          <span>{{ formatearPrecio(pedido.total) }}</span>
+        </div>
+        <div>
+          <span class="label">Método de pago:</span>
+          <span>{{ pedido.metodoPago || 'No informado' }}</span>
+        </div>
+        <div>
+          <span class="label">Dirección de entrega:</span>
+          <span>{{ pedido.direccionEntrega }}</span>
+        </div>
+        <div>
+          <span class="label">Fecha entrega:</span>
+          <span>{{ formatearFecha(pedido.fechaEntrega) }}</span>
+        </div>
+      </div>
+
+      <div class="acciones">
+        <button class="btn-secundario" (click)="verDetalle(pedido)">Ver detalle</button>
+        <button class="btn-primario" [disabled]="repeticionEnCurso === pedido._id" (click)="repetirCompra(pedido)">
+          {{ repeticionEnCurso === pedido._id ? 'Repitiendo...' : 'Repetir compra' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones-finales" *ngIf="pedidos.length > 0">
+    <button class="btn-secundario" (click)="regresarAlPerfil()">Volver al perfil</button>
+  </div>
+</div>
+
+<ng-template #cargandoTpl>
+  <div class="cargando">
+    <span class="spinner"></span>
+    <p>Cargando historial...</p>
+  </div>
+</ng-template>
+
+<!-- Popup detalle -->
+<div class="overlay" *ngIf="mostrarDetalle && pedidoSeleccionado" (click)="cerrarDetalle()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <header>
+      <h2>Detalle del pedido</h2>
+      <button class="cerrar" (click)="cerrarDetalle()" aria-label="Cerrar">×</button>
+    </header>
+    <div class="modal-body">
+      <div class="info">
+        <div>
+          <span class="label">Estado:</span>
+          <span [class]="estadoClase(pedidoSeleccionado.estado)">{{ pedidoSeleccionado.estado | titlecase }}</span>
+        </div>
+        <div>
+          <span class="label">Creado el:</span>
+          <span>{{ formatearFecha(pedidoSeleccionado.creadoEl) }}</span>
+        </div>
+        <div>
+          <span class="label">Dirección:</span>
+          <span>{{ pedidoSeleccionado.direccionEntrega }}</span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of pedidoSeleccionado.items">
+            <td>{{ item.nombre }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td>{{ formatearPrecio(item.precioUnitario) }}</td>
+            <td>{{ formatearPrecio(item.subtotal) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="total">
+        <span>Total del pedido:</span>
+        <strong>{{ formatearPrecio(pedidoSeleccionado.total) }}</strong>
+      </div>
+    </div>
+  </div>
+</div>

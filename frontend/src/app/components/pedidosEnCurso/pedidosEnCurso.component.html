@@ -1,0 +1,132 @@
+<div class="pedidos-wrapper" *ngIf="!cargando; else cargandoTpl">
+  <div class="header">
+    <h1>Mis pedidos en curso</h1>
+    <div class="saldo">
+    </div>
+  </div>
+
+  <div class="mensajes">
+    <div class="mensaje info" *ngIf="mensajeInfo">{{ mensajeInfo }}</div>
+    <div class="mensaje error" *ngIf="mensajeError">{{ mensajeError }}</div>
+  </div>
+
+  <div class="sin-pedidos" *ngIf="pedidos.length === 0 && !mensajeError">
+    <p>No tenés pedidos registrados por el momento.</p>
+    <button class="btn-primario" (click)="regresarAlPerfil()">Volver al perfil</button>
+  </div>
+
+  <div class="pedidos-lista" *ngIf="pedidos.length > 0">
+    <div class="pedido" *ngFor="let pedido of pedidos">
+      <div class="pedido-header">
+        <div>
+          <h2>Pedido {{ pedido._id | slice:-6 }}</h2>
+          <p>Creado el {{ formatearFecha(pedido.creadoEl) }}</p>
+        </div>
+        <span [class]="estadoClase(pedido.estado)">{{ pedido.estado | titlecase }}</span>
+      </div>
+
+      <div class="pedido-detalle">
+        <div>
+          <span class="label">Total:</span>
+          <span>{{ formatearPrecio(pedido.total) }}</span>
+        </div>
+        <div>
+          <span class="label">Método de pago:</span>
+          <span>{{ pedido.metodoPago || 'No informado' }}</span>
+        </div>
+        <div>
+          <span class="label">Dirección de entrega:</span>
+          <span>{{ pedido.direccionEntrega }}</span>
+        </div>
+        <div>
+          <span class="label">Fecha estimada:</span>
+          <span>{{ formatearFecha(pedido.fechaEntrega) }}</span>
+        </div>
+      </div>
+
+      <div class="acciones">
+        <button class="btn-secundario" (click)="verDetalle(pedido)">Ver detalle</button>
+        <button class="btn-cancelar" [disabled]="pedido.estado !== 'pendiente' || cargandoCancelacion" (click)="confirmarCancelacion(pedido)">
+          Cancelar pedido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones-finales" *ngIf="pedidos.length > 0">
+    <button class="btn-primario" (click)="regresarAlPerfil()">Volver al perfil</button>
+  </div>
+</div>
+
+<ng-template #cargandoTpl>
+  <div class="cargando">
+    <span class="spinner"></span>
+    <p>Cargando pedidos...</p>
+  </div>
+</ng-template>
+
+<!-- Popup detalle -->
+<div class="overlay" *ngIf="mostrarDetalle && pedidoSeleccionado" (click)="cerrarDetalle()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <header>
+      <h2>Detalle del pedido</h2>
+      <button class="cerrar" (click)="cerrarDetalle()" aria-label="Cerrar">×</button>
+    </header>
+    <div class="modal-body">
+      <div class="info">
+        <div>
+          <span class="label">Estado:</span>
+          <span [class]="estadoClase(pedidoSeleccionado.estado)">{{ pedidoSeleccionado.estado | titlecase }}</span>
+        </div>
+        <div>
+          <span class="label">Creado el:</span>
+          <span>{{ formatearFecha(pedidoSeleccionado.creadoEl) }}</span>
+        </div>
+        <div>
+          <span class="label">Dirección:</span>
+          <span>{{ pedidoSeleccionado.direccionEntrega }}</span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of pedidoSeleccionado.items">
+            <td>{{ item.nombre }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td>{{ formatearPrecio(item.precioUnitario) }}</td>
+            <td>{{ formatearPrecio(item.subtotal) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="total">
+        <span>Total del pedido:</span>
+        <strong>{{ formatearPrecio(pedidoSeleccionado.total) }}</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmación cancelación -->
+<div class="overlay" *ngIf="mostrarConfirmacion && pedidoPendienteCancelacion" (click)="cancelarConfirmacion()">
+  <div class="modal confirmacion" (click)="$event.stopPropagation()">
+    <header>
+      <h2>Cancelar pedido</h2>
+    </header>
+    <p>¿Estás seguro de cancelar este pedido? Se acreditará el total a tu saldo a favor.</p>
+    <div class="botones-confirmacion">
+      <button class="btn-cancelar" [disabled]="cargandoCancelacion" (click)="cancelarPedido()">
+        {{ cargandoCancelacion ? 'Cancelando...' : 'Sí, cancelar' }}
+      </button>
+      <button class="btn-secundario" (click)="cancelarConfirmacion()" [disabled]="cargandoCancelacion">No, mantener</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,140 @@
+<div class="ventas-container">
+  <div class="ventas-header">
+    <h1>Ventas - Pedidos de clientes</h1>
+    <div class="filtros">
+      <label>
+        Estado
+        <select [(ngModel)]="filtroEstado" (change)="cargarPedidos()">
+          <option value="">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="entregado">Entregado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </label>
+      <label>
+        DNI
+        <input [(ngModel)]="filtroDni" placeholder="Ej: 12345678" />
+      </label>
+      <label>
+        Fecha desde
+        <input type="date" [(ngModel)]="filtroFechaDesde" />
+      </label>
+      <label>
+        Fecha hasta
+        <input type="date" [(ngModel)]="filtroFechaHasta" />
+      </label>
+      <div class="filtro-acciones">
+        <button class="btn" (click)="cargarPedidos()">Filtrar</button>
+        <button class="btn secondary" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="cargando" class="loading">Cargando pedidos...</div>
+  <div *ngIf="!cargando && error" class="error">{{ error }}</div>
+
+  <div *ngIf="!cargando && !error">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>DNI</th>
+          <th>Dirección</th>
+          <th>Total</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of pedidos">
+          <td>{{ p.creadoEl | date:'short' }}</td>
+          <td>{{ p.dni }}</td>
+          <td>{{ p.direccionEntrega }}</td>
+          <td>{{ p.total | currency:'ARS' }}</td>
+          <td>
+            <span class="badge" [class.pendiente]="p.estado==='pendiente'" [class.entregado]="p.estado==='entregado'" [class.cancelado]="p.estado==='cancelado'">
+              {{ p.estado }}
+            </span>
+          </td>
+          <td class="acciones">
+            <button class="btn info" (click)="verDetalle(p)">Detalle</button>
+            <button class="btn success" (click)="despachar(p)" [disabled]="p.estado!=='pendiente'">Despachar</button>
+            <button class="btn danger" (click)="cancelar(p)" [disabled]="p.estado!=='pendiente'">Cancelar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="reportes">
+    <h2>Reportes de ventas</h2>
+    <p>Generá reportes en PDF según la información que necesitás consultar.</p>
+    <div class="reportes-botones">
+      <button class="btn info" (click)="generarReporteTopProductos()" [disabled]="reporteProcesando">Top productos más vendidos</button>
+      <button class="btn info" (click)="generarReportePorCategoria()" [disabled]="reporteProcesando">Ventas por categoría</button>
+      <button class="btn info" (click)="generarReportePorPeriodo()" [disabled]="reporteProcesando">Reporte por periodo</button>
+    </div>
+  </div>
+
+  <!-- Modal Detalle de Pedido -->
+  <div class="modal-backdrop" *ngIf="pedidoDetalle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Detalle de pedido</h2>
+        <button class="close" (click)="cerrarDetalle()">✕</button>
+      </div>
+      <div class="modal-body" *ngIf="pedidoDetalle as pd">
+        <div class="grid">
+          <div>
+            <label>DNI</label>
+            <div>{{ pd.dni }}</div>
+          </div>
+          <div>
+            <label>Estado</label>
+            <div>{{ pd.estado }}</div>
+          </div>
+          <div>
+            <label>Creado</label>
+            <div>{{ pd.creadoEl | date:'short' }}</div>
+          </div>
+          <div>
+            <label>Entrega</label>
+            <div>{{ pd.fechaEntrega ? (pd.fechaEntrega | date:'short') : '-' }}</div>
+          </div>
+        </div>
+        <div class="mt">
+          <label>Dirección de entrega</label>
+          <div>{{ pd.direccionEntrega }}</div>
+        </div>
+        <div class="mt">
+          <label>Productos</label>
+          <table class="items-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="right">Cant.</th>
+                <th class="right">Precio</th>
+                <th class="right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of pd.items">
+                <td>{{ it.nombre }}</td>
+                <td class="right">{{ it.cantidad }}</td>
+                <td class="right">{{ it.precioUnitario | currency:'ARS' }}</td>
+                <td class="right">{{ it.subtotal | currency:'ARS' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="total">
+            <span>Total</span>
+            <strong>{{ pd.total | currency:'ARS' }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

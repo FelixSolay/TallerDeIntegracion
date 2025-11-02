@@ -1,0 +1,245 @@
+<div class="crear-producto-container">
+  <div class="header">
+    <h2>{{ esEdicion ? 'Editar producto' : 'Nuevo producto' }}</h2>
+  </div>
+
+  <form [formGroup]="productoForm" (ngSubmit)="onSubmit()" class="producto-form">
+    
+    <!-- Categoría -->
+    <div class="form-group">
+      <label for="categoria">Categoría</label>
+      <select id="categoria" formControlName="categoriaId" class="form-control" required>
+        <option [ngValue]="null">Seleccionar categoría...</option>
+        <ng-container *ngFor="let grupo of grupos">
+          <optgroup [label]="grupo.padre.nombre">
+            <option *ngFor="let h of grupo.hijos" [value]="h._id">{{ h.nombre }}</option>
+          </optgroup>
+        </ng-container>
+        <optgroup *ngIf="huerfanos.length" label="Otras">
+          <option *ngFor="let h of huerfanos" [value]="h._id">{{ h.nombre }}</option>
+        </optgroup>
+      </select>
+      <div *ngIf="productoForm.get('categoriaId')?.touched && productoForm.get('categoriaId')?.errors as errs" class="error-msg">
+        <span *ngIf="errs['required']">La categoría es obligatoria</span>
+        <span *ngIf="errs['categoriaNoHoja']">Debes seleccionar una sub-subcategoría (no un padre)</span>
+      </div>
+    </div>
+    
+    <!-- Nombre del producto -->
+    <div class="form-group">
+      <label for="nombre">Nombre del producto *</label>
+      <input 
+        type="text" 
+        id="nombre" 
+        formControlName="nombre" 
+        class="form-control"
+        placeholder="Ej: Coca Cola 2.25L, Pan Lactal, etc."
+        required>
+      <div *ngIf="productoForm.get('nombre')?.invalid && productoForm.get('nombre')?.touched" class="error-msg">
+        El nombre es obligatorio
+      </div>
+    </div>
+
+    <!-- Descripción -->
+    <div class="form-group">
+      <label for="descripcion">Descripción</label>
+      <textarea 
+        id="descripcion" 
+        formControlName="descripcion" 
+        class="form-control"
+        rows="3"
+        placeholder="Descripción del producto (opcional)...">
+      </textarea>
+    </div>
+
+    <!-- Precio -->
+    <div class="form-group">
+      <label for="precio">Precio *</label>
+      <div class="input-with-prefix">
+        <span class="prefix">$</span>
+        <input 
+          type="number" 
+          id="precio" 
+          formControlName="precio" 
+          class="form-control with-prefix"
+          placeholder="0.00"
+          min="0"
+          step="0.01"
+          required>
+      </div>
+      <div *ngIf="productoForm.get('precio')?.invalid && productoForm.get('precio')?.touched" class="error-msg">
+        El precio debe ser mayor o igual a 0
+      </div>
+    </div>
+
+    <!-- Stock -->
+    <div class="form-group">
+      <label for="stock">Stock disponible *</label>
+      <input 
+        type="number" 
+        id="stock" 
+        formControlName="stock" 
+        class="form-control"
+        placeholder="0"
+        min="0"
+        required>
+      <small class="form-hint">
+        Cantidad de unidades disponibles para la venta
+      </small>
+      <div *ngIf="productoForm.get('stock')?.invalid && productoForm.get('stock')?.touched" class="error-msg">
+        El stock debe ser mayor o igual a 0
+      </div>
+    </div>
+
+    <!-- Imagen del producto -->
+    <div class="form-group">
+      <label>Imagen del producto</label>
+      <div class="image-upload-container">
+        
+        <!-- Preview de la imagen -->
+        <div class="image-preview" *ngIf="imagenPreview">
+          <img [src]="imagenPreview" alt="Preview">
+          <button type="button" class="btn-remove-image" (click)="eliminarImagen()">
+            ✕
+          </button>
+        </div>
+
+        <!-- Botón para seleccionar imagen -->
+        <div class="upload-btn-container" *ngIf="!imagenPreview">
+          <label for="imagen" class="btn-upload">
+            📷 Seleccionar imagen
+          </label>
+          <input 
+            type="file" 
+            id="imagen" 
+            accept="image/*"
+            (change)="onImageSelected($event)"
+            style="display: none;">
+          <small class="form-hint">
+            Tamaño recomendado: 1024x920px o superior. Máximo 10MB.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones -->
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="cancelar()" [disabled]="cargando">
+        Cancelar
+      </button>
+      <button 
+        type="submit" 
+        class="btn-primary" 
+        [disabled]="productoForm.invalid || cargando || subiendoImagen">
+        <span *ngIf="!cargando && !subiendoImagen">
+          {{ esEdicion ? 'Actualizar producto' : 'Crear producto' }}
+        </span>
+        <span *ngIf="subiendoImagen">Subiendo imagen...</span>
+        <span *ngIf="cargando && !subiendoImagen">Guardando...</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Popups de éxito -->
+<app-error-popup 
+  *ngIf="popup == 'exito'" 
+  text="¡Producto creado!" 
+  textAux="El producto se creó correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'exitoActualizar'" 
+  text="¡Producto actualizado!" 
+  textAux="Los cambios se guardaron correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<!-- Popups de error -->
+<app-error-popup 
+  *ngIf="popup == 'error'" 
+  text="Error" 
+  textAux="No se pudo guardar el producto" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'formularioInvalido'" 
+  text="Formulario incompleto" 
+  textAux="Por favor completa todos los campos obligatorios" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'nombreRequerido'" 
+  text="Nombre requerido" 
+  textAux="Debes ingresar un nombre para el producto" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'precioInvalido'" 
+  text="Precio inválido" 
+  textAux="El precio debe ser un número mayor o igual a 0" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'productoExiste'" 
+  text="Producto duplicado" 
+  textAux="Ya existe un producto con ese nombre" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'categoriaRequerida'" 
+  text="Categoría requerida" 
+  textAux="Debes seleccionar una categoría para el producto" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'categoriaNoEncontrada'" 
+  text="Categoría no encontrada" 
+  textAux="La categoría seleccionada no existe" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'categoriaNivelInvalido'" 
+  text="Nivel de categoría inválido" 
+  textAux="Debes seleccionar una subcategoría (nivel 1) o sub-subcategoría (nivel 2)" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'archivoInvalido'" 
+  text="Archivo inválido" 
+  textAux="Por favor selecciona una imagen válida (JPG, PNG, etc.)" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'archivoGrande'" 
+  text="Archivo muy grande" 
+  textAux="La imagen debe ser menor a 10MB" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorSubirImagen'" 
+  text="Error al subir imagen" 
+  textAux="No se pudo subir la imagen. Intenta nuevamente." 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorCargar'" 
+  text="Error al cargar" 
+  textAux="No se pudo cargar el producto" 
+  [closePopup]="close.bind(this)">
+</app-error-popup>
+

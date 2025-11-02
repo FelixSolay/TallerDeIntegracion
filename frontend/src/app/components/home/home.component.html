@@ -1,9 +1,45 @@
-<div class="main-container">
-    <div class="development-banner">
-        <div class="banner-content">
-            <span class="construction-icon">🚧</span>
-            <h2>Página en desarrollo</h2>
-            <p>Estamos trabajando para ofrecerte la mejor experiencia</p>
+<section class="home-hero">
+    <div class="hero-overlay">
+        <div class="hero-content">
+            <p class="hero-badge">Bienvenido a Supermercado</p>
+            <h1>Todo lo que necesitás en un solo lugar</h1>
+            <p class="hero-message">
+                Iniciá sesión para continuar tu compra o creá tu cuenta en segundos y recibí beneficios exclusivos.
+            </p>
+            <div class="hero-actions" role="group" aria-label="Acciones principales">
+                <a class="btn btn-primary" routerLink="/login">Iniciar sesión</a>
+                <a class="btn btn-secondary" routerLink="/register">Crear cuenta</a>
+            </div>
         </div>
     </div>
-</div>
+</section>
+<!-- Sección de productos más vendidos 
+<section class="best-sellers" aria-labelledby="best-sellers-title">
+    <div class="section-header">
+        <h2 id="best-sellers-title">Nuestros productos más vendidos</h2>
+    </div>
+
+    <div class="carousel" *ngIf="products.length > 0">
+        <button class="carousel-control prev" type="button" (click)="goPrev()" aria-label="Ver productos anteriores" [disabled]="products.length <= visibleItems">
+            &lsaquo;
+        </button>
+
+        <div class="carousel-track">
+            <article class="product-card" *ngFor="let product of visibleProducts">
+                <div class="product-image">
+                    <img [src]="getProductImage(product)" [alt]="product.nombre" loading="lazy" />
+                </div>
+                <h3>{{ product.nombre }}</h3>
+                <p class="price">{{ product.precio | currency:'ARS':'symbol':'1.2-2' }}</p>
+            </article>
+        </div>
+
+        <button class="carousel-control next" type="button" (click)="goNext()" aria-label="Ver productos siguientes" [disabled]="products.length <= visibleItems">
+            &rsaquo;
+        </button>
+    </div>
+
+    <p class="carousel-message" *ngIf="!loading && error">{{ error }}</p>
+    <p class="carousel-message loading" *ngIf="loading">Cargando productos...</p>
+</section>
+-->

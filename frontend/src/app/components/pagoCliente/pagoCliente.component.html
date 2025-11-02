@@ -1,0 +1,94 @@
+<div class="pago-container" *ngIf="!cargando; else loadingTpl">
+  <div class="pago-header">
+    <h1>Pago del Pedido</h1>
+    <button class="btn-volver" (click)="volverAlCarrito()">← Volver al carrito</button>
+  </div>
+
+  <div class="resumen-card">
+    <div class="saldo-info">
+      <span class="saldo-label">Saldo a favor:</span>
+      <span class="saldo-valor">{{ formatearPrecio(saldoAFavor) }}</span>
+    </div>
+
+    <div class="total-info">
+      <span class="total-label">Total a pagar:</span>
+      <span class="total-valor">{{ formatearPrecio(total) }}</span>
+    </div>
+  </div>
+
+  <div class="items-card" *ngIf="carritoItems.length > 0; else carritoVacio">
+    <h2>Productos en tu pedido</h2>
+    <div class="item" *ngFor="let item of carritoItems">
+      <div class="item-info">
+        <h3>{{ item.nombre }}</h3>
+        <p>Cantidad: {{ item.cantidad }}</p>
+      </div>
+      <div class="item-precio">
+        <span>{{ formatearPrecio(item.subtotal) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="direccion-card">
+    <h2>Dirección de entrega</h2>
+    <p class="direccion-help">
+      Indica la dirección donde deseas recibir tu pedido. Si ya la tenías cargada, la completamos automáticamente por ti.
+    </p>
+    <textarea
+      rows="3"
+      class="direccion-textarea"
+      [(ngModel)]="direccionEntrega"
+      placeholder="Ejemplo: Av. Siempre Viva 742, Piso 4, Depto B"
+    ></textarea>
+    <div class="direccion-error" *ngIf="mensajeError === 'Debes ingresar una dirección de entrega para continuar.'">
+      Debes ingresar una dirección válida.
+    </div>
+  </div>
+
+  <div class="metodo-pago">
+    <h2>Método de pago</h2>
+    <label class="radio-option">
+      <input type="radio" name="metodoPago" value="tarjeta" [(ngModel)]="metodoPago" />
+      Tarjeta de crédito / débito
+    </label>
+    <label class="radio-option">
+      <input type="radio" name="metodoPago" value="efectivo" [(ngModel)]="metodoPago" />
+      Pago en efectivo (contra entrega)
+    </label>
+    <label class="radio-option">
+      <input type="radio" name="metodoPago" value="saldo" [(ngModel)]="metodoPago" />
+      Usar saldo a favor
+    </label>
+  </div>
+
+  <div class="alerta" *ngIf="metodoPago === 'saldo' && saldoAFavor < total">
+    ⚠️ Tu saldo a favor es insuficiente para cubrir el total. Selecciona otro método de pago.
+  </div>
+
+  <div class="mensajes">
+    <div class="mensaje-exito" *ngIf="mensajeExito">{{ mensajeExito }}</div>
+    <div class="mensaje-error" *ngIf="mensajeError">{{ mensajeError }}</div>
+  </div>
+
+  <button 
+    class="btn-pagar"
+    (click)="pagar()"
+  [disabled]="carritoItems.length === 0 || procesandoPago || (metodoPago === 'saldo' && saldoAFavor < total) || !direccionEntrega.trim()"
+  >
+    {{ procesandoPago ? 'Procesando...' : 'Confirmar pago' }}
+  </button>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Cargando datos de pago...</p>
+  </div>
+</ng-template>
+
+<ng-template #carritoVacio>
+  <div class="carrito-vacio">
+    <p>No hay productos en el carrito. Agrega artículos antes de realizar el pago.</p>
+    <button class="btn-volver" (click)="volverAlCarrito()">Ir al carrito</button>
+  </div>
+</ng-template>

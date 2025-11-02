@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { GlobalService } from '../../services/global.service';
+import { ProductoService } from '../../services/producto.service';
 import { ButtonComponent } from '../button/button.component';
 import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
 
@@ -25,12 +26,17 @@ export class ProfileComponent implements OnInit {
     codigoPostal: new FormControl('', Validators.pattern(/^\d{4,8}$/))
   });
 
-  constructor(private http: HttpClient, private globalService: GlobalService) {}
+  constructor(
+    private http: HttpClient, 
+    private globalService: GlobalService,
+    private productoService: ProductoService
+  ) {}
 
   router = inject(Router);
   popup = '';
   userDni = sessionStorage.getItem("dni") || '43573399';
-  userSaldo = 2000.00; // Valor por defecto
+  saldoAFavor = 0; // Saldo a favor del cliente
+  totalCarrito = 0; // Total del carrito actual
   
   ngOnInit(): void {
     // Verificar que el usuario esté logueado
@@ -41,6 +47,25 @@ export class ProfileComponent implements OnInit {
 
     // Cargar los datos del usuario
     this.loadUserData();
+    this.loadCartTotal();
+  }
+
+  loadCartTotal(): void {
+    const dni = sessionStorage.getItem("dni");
+    if (dni && dni.trim() !== '') {
+      this.productoService.getCart(dni).subscribe({
+        next: (response) => {
+          if (response && response.success) {
+            this.totalCarrito = response.carrito?.total || 0;
+            this.globalService.setCartTotal(this.totalCarrito);
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar carrito en perfil:', error);
+          this.totalCarrito = 0;
+        }
+      });
+    }
   }
 
   loadUserData(): void {
@@ -113,7 +138,7 @@ export class ProfileComponent implements OnInit {
             console.log('Teléfono real:', cliente.telefono);
             console.log('Email real:', cliente.mail);
             
-            this.userSaldo = cliente.saldo || 0.00;
+            this.saldoAFavor = cliente.saldoAFavor || 0.00;
             
             console.log('=== DATOS CARGADOS EN EL FORMULARIO ===');
             console.log(this.perfilForm.value);
@@ -203,14 +228,11 @@ export class ProfileComponent implements OnInit {
 
   pedidosEnCurso(): void {
     // Funcionalidad para pedidos en curso
-    console.log('Navegando a pedidos en curso...');
-    // this.router.navigateByUrl("/pedidos-curso");
+    this.router.navigateByUrl('/pedidos-en-curso');
   }
 
   historialCompras(): void {
-    // Funcionalidad para historial de compras
-    console.log('Navegando a historial de compras...');
-    // this.router.navigateByUrl("/historial-compras");
+    this.router.navigateByUrl('/historial-pedidos');
   }
 
   eliminarCuenta(): void {
@@ -242,5 +264,12 @@ export class ProfileComponent implements OnInit {
 
   close(): void {
     this.popup = '';
+  }
+
+  formatearPrecio(precio: number): string {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(precio);
   }
 }

@@ -3,7 +3,12 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ 
+    dest: 'uploads/',
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB máximo
+    }
+});
 const fs = require('fs');
 const crypto = require('crypto');
 const { type } = require('os');
@@ -15,7 +20,8 @@ const port = 3000;
 
 // Middleware
 app.use(cors()); // Permite conexiones desde Angular
-app.use(express.json()); // Para procesar JSON en las peticiones
+app.use(express.json({ limit: '10mb' })); // Para procesar JSON en las peticiones, aumentado a 10MB
+app.use(express.urlencoded({ limit: '10mb', extended: true })); // Para datos de formularios
 
 mongoose.connect('mongodb+srv://pololo5007:Playa1820@cluster0.qlomp8b.mongodb.net/SupermercadoDB?retryWrites=true&w=majority&appName=Cluster0')
 .then(() => console.log('Conectado a MongoDB Atlas'))
@@ -37,19 +43,60 @@ function validatePostalCode(codigoPostal) {
 }
 
 // Registrar cliente
-// Definir un esquema y modelo para clientes
+// Definir un esquema y modelo para clientes (ahora con carrito)
+const cartItemSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'productos', required: false },
+    nombre: { type: String, required: true },
+    precioUnitario: { type: Number, required: true, min: 0 },
+    cantidad: { type: Number, required: true, min: 1, default: 1 },
+    subtotal: { type: Number, required: true, min: 0 }
+}, { _id: false }); // evitar id adicional por cada item si no es necesario
+
 const customerSchema = new mongoose.Schema({
-  nombre: String,
-  apellido: String,
-  dni: String,
-  mail: String,
-  password: String,
-  telefono: String,
-  domicilio: { type: String, default: '' },
-  codigoPostal: { type: String, default: '' }
+    nombre: String,
+    apellido: String,
+    dni: { type: String, index: true },
+    mail: String,
+    password: String,
+    telefono: String,
+    domicilio: { type: String, default: '' },
+    codigoPostal: { type: String, default: '' },
+    saldoAFavor: { type: Number, default: 0, min: 0 },
+    carrito: {
+        items: { type: [cartItemSchema], default: [] },
+        total: { type: Number, default: 0, min: 0 }
+    },
+    favoritos: {
+        type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'productos' }],
+        default: []
+    }
 });
 
 const Customer = mongoose.model('clientes', customerSchema);
+
+// Esquema de pedidos
+const orderItemSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'productos', required: false },
+    nombre: { type: String, required: true },
+    precioUnitario: { type: Number, required: true, min: 0 },
+    cantidad: { type: Number, required: true, min: 1 },
+    subtotal: { type: Number, required: true, min: 0 }
+}, { _id: false });
+
+const orderSchema = new mongoose.Schema({
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: 'clientes', required: true },
+    dni: { type: String, required: true },
+    nombre: { type: String, default: '' },
+    direccionEntrega: { type: String, required: true },
+    items: { type: [orderItemSchema], default: [] },
+    total: { type: Number, required: true, min: 0 },
+    estado: { type: String, enum: ['pendiente', 'entregado', 'cancelado'], default: 'pendiente' },
+    fechaEntrega: { type: Date, default: null },
+    metodoPago: { type: String, default: 'carrito' },
+    stockAjustado: { type: Boolean, default: false }
+}, { timestamps: { createdAt: 'creadoEl', updatedAt: 'actualizadoEl' } });
+
+const Order = mongoose.model('orders', orderSchema);
 
 // Definir esquema y modelo para admins (necesario antes de usar Admin)
 const adminSchema = new mongoose.Schema({
@@ -261,6 +308,625 @@ app.post('/api/customers/login', async (req, res) => {
     }
 });
 
+// Helper: recalcula totales del carrito a partir de los items
+function recalculateCart(cart) {
+    if (!cart || !Array.isArray(cart.items)) return { items: [], total: 0 };
+    let total = 0;
+    cart.items.forEach(item => {
+        // asegurarse de que subtotal esté consistente
+        item.subtotal = Number((item.precioUnitario * item.cantidad).toFixed(2));
+        total += item.subtotal;
+    });
+    cart.total = Number(total.toFixed(2));
+    return cart;
+}
+
+// Obtener carrito completo por DNI
+app.get('/api/customers/:dni/cart', async (req, res) => {
+    const { dni } = req.params;
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, error: 'dniRequerido' });
+    }
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+
+        // Garantizar estructura y totales actualizados (inicializar si no existe)
+        if (!customer.carrito || !customer.carrito.items) {
+            customer.carrito = { items: [], total: 0 };
+        }
+        customer.carrito = recalculateCart(customer.carrito);
+        await customer.save();
+
+        res.status(200).json({ success: true, carrito: customer.carrito });
+    } catch (error) {
+        console.error('Error al obtener carrito:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Añadir un producto al carrito (o aumentar cantidad si ya existe)
+// Body: { productId?, nombre, precioUnitario, cantidad }
+app.post('/api/customers/:dni/cart/add', async (req, res) => {
+    const { dni } = req.params;
+    let { productId, nombre, precioUnitario, cantidad } = req.body;
+
+    cantidad = Number(cantidad) || 1;
+    precioUnitario = Number(precioUnitario);
+
+    if (!dni || dni.trim() === '') return res.status(400).json({ success: false, error: 'dniRequerido' });
+    if (!nombre && !productId) return res.status(400).json({ success: false, error: 'productoInvalido' });
+    if (isNaN(precioUnitario) || precioUnitario < 0) return res.status(400).json({ success: false, error: 'precioInvalido' });
+    if (cantidad <= 0) return res.status(400).json({ success: false, error: 'cantidadInvalida' });
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+
+        // Garantizar que el carrito existe
+        if (!customer.carrito || !customer.carrito.items) {
+            customer.carrito = { items: [], total: 0 };
+        }
+
+        // Buscar si ya existe el item (por productId si viene, si no por nombre)
+        let existingIndex = -1;
+        if (productId) {
+            existingIndex = customer.carrito.items.findIndex(i => i.productId && i.productId.toString() === productId.toString());
+        }
+        if (existingIndex === -1 && nombre) {
+            existingIndex = customer.carrito.items.findIndex(i => i.nombre === nombre);
+        }
+
+        if (existingIndex > -1) {
+            // aumentar cantidad
+            customer.carrito.items[existingIndex].cantidad += cantidad;
+            customer.carrito.items[existingIndex].precioUnitario = precioUnitario; // actualizar precio por si cambió
+            customer.carrito = recalculateCart(customer.carrito);
+        } else {
+            const newItem = {
+                productId: productId || null,
+                nombre: nombre,
+                precioUnitario: precioUnitario,
+                cantidad: cantidad,
+                subtotal: Number((precioUnitario * cantidad).toFixed(2))
+            };
+            customer.carrito.items.push(newItem);
+            customer.carrito = recalculateCart(customer.carrito);
+        }
+
+        await customer.save();
+        res.status(200).json({ success: true, carrito: customer.carrito });
+    } catch (error) {
+        console.error('Error añadiendo al carrito:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Actualizar cantidad de un item en el carrito
+// Body: { productId? , nombre?, cantidad }
+app.put('/api/customers/:dni/cart/update', async (req, res) => {
+    const { dni } = req.params;
+    let { productId, nombre, cantidad } = req.body;
+    cantidad = Number(cantidad);
+    if (!dni || dni.trim() === '') return res.status(400).json({ success: false, error: 'dniRequerido' });
+    if (!productId && !nombre) return res.status(400).json({ success: false, error: 'productoInvalido' });
+    if (!Number.isFinite(cantidad) || cantidad < 0) return res.status(400).json({ success: false, error: 'cantidadInvalida' });
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+
+        // Garantizar que el carrito existe
+        if (!customer.carrito || !customer.carrito.items) {
+            customer.carrito = { items: [], total: 0 };
+        }
+
+        let idx = -1;
+        if (productId) idx = customer.carrito.items.findIndex(i => i.productId && i.productId.toString() === productId.toString());
+        if (idx === -1 && nombre) idx = customer.carrito.items.findIndex(i => i.nombre === nombre);
+
+        if (idx === -1) return res.status(404).json({ success: false, error: 'itemNoEncontrado' });
+
+        if (cantidad === 0) {
+            // remover item
+            customer.carrito.items.splice(idx, 1);
+        } else {
+            customer.carrito.items[idx].cantidad = cantidad;
+        }
+
+        customer.carrito = recalculateCart(customer.carrito);
+        await customer.save();
+        res.status(200).json({ success: true, carrito: customer.carrito });
+    } catch (error) {
+        console.error('Error actualizando carrito:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Eliminar un item del carrito por productId o nombre
+app.delete('/api/customers/:dni/cart/remove', async (req, res) => {
+    const { dni } = req.params;
+    const { productId, nombre } = req.body || {};
+    if (!dni || dni.trim() === '') return res.status(400).json({ success: false, error: 'dniRequerido' });
+    if (!productId && !nombre) return res.status(400).json({ success: false, error: 'productoInvalido' });
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+
+        // Garantizar que el carrito existe
+        if (!customer.carrito || !customer.carrito.items) {
+            customer.carrito = { items: [], total: 0 };
+        }
+
+        let idx = -1;
+        if (productId) idx = customer.carrito.items.findIndex(i => i.productId && i.productId.toString() === productId.toString());
+        if (idx === -1 && nombre) idx = customer.carrito.items.findIndex(i => i.nombre === nombre);
+
+        if (idx === -1) return res.status(404).json({ success: false, error: 'itemNoEncontrado' });
+
+        customer.carrito.items.splice(idx, 1);
+        customer.carrito = recalculateCart(customer.carrito);
+        await customer.save();
+
+        res.status(200).json({ success: true, carrito: customer.carrito });
+    } catch (error) {
+        console.error('Error eliminando item carrito:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Crear pedido a partir del carrito
+app.post('/api/customers/:dni/orders', async (req, res) => {
+    const { dni } = req.params;
+    const { metodoPago, direccionEntrega } = req.body || {};
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, error: 'dniRequerido' });
+    }
+
+    if (!direccionEntrega || direccionEntrega.trim() === '') {
+        return res.status(400).json({ success: false, error: 'direccionRequerida' });
+    }
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+        }
+
+        if (!customer.carrito || !Array.isArray(customer.carrito.items) || customer.carrito.items.length === 0) {
+            return res.status(400).json({ success: false, error: 'carritoVacio' });
+        }
+
+        customer.carrito = recalculateCart(customer.carrito);
+
+        const direccionNormalizada = direccionEntrega.trim();
+        const totalPedido = customer.carrito.total;
+        const metodoSeleccionado = (metodoPago || '').trim().toLowerCase() || 'carrito';
+
+        if (metodoSeleccionado === 'saldo') {
+            const saldoDisponible = Number(customer.saldoAFavor || 0);
+            if (saldoDisponible < totalPedido) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'saldoInsuficiente',
+                    saldoAFavor: saldoDisponible
+                });
+            }
+
+            // Descontar el saldo disponible con precisión de dos decimales
+            const nuevoSaldo = Number((saldoDisponible - totalPedido).toFixed(2));
+            customer.saldoAFavor = nuevoSaldo >= 0 ? nuevoSaldo : 0;
+        }
+
+        const orderPayload = {
+            customer: customer._id,
+            dni: customer.dni,
+            nombre: `${customer.nombre || ''} ${customer.apellido || ''}`.trim(),
+            direccionEntrega: direccionNormalizada,
+            items: customer.carrito.items.map(item => ({
+                productId: item.productId || null,
+                nombre: item.nombre,
+                precioUnitario: item.precioUnitario,
+                cantidad: item.cantidad,
+                subtotal: item.subtotal
+            })),
+            total: totalPedido,
+            estado: 'pendiente',
+            metodoPago: metodoSeleccionado
+        };
+
+        const resultadoStock = await verificarYDescontarStock(orderPayload.items);
+        if (resultadoStock.faltantes.length > 0) {
+            return res.status(409).json({
+                success: false,
+                error: 'stockInsuficiente',
+                faltantes: resultadoStock.faltantes
+            });
+        }
+
+        orderPayload.stockAjustado = resultadoStock.descontado;
+
+        let nuevaOrden = null;
+        try {
+            nuevaOrden = await Order.create(orderPayload);
+
+            customer.carrito = { items: [], total: 0 };
+            customer.domicilio = direccionNormalizada;
+            // El saldo ya fue actualizado si correspondía al método "saldo"
+            await customer.save();
+
+            res.status(201).json({
+                success: true,
+                pedido: nuevaOrden,
+                carrito: customer.carrito,
+                saldoAFavor: customer.saldoAFavor
+            });
+        } catch (creationError) {
+            if (orderPayload.stockAjustado) {
+                try {
+                    await restaurarStockDeItems(orderPayload.items);
+                } catch (restoreError) {
+                    console.error('Error al restaurar stock tras fallo al crear pedido:', restoreError);
+                }
+            }
+
+            if (nuevaOrden && nuevaOrden._id) {
+                try {
+                    await Order.findByIdAndDelete(nuevaOrden._id);
+                } catch (cleanupError) {
+                    console.error('Error al eliminar pedido creado tras fallo posterior:', cleanupError);
+                }
+            }
+
+            throw creationError;
+        }
+    } catch (error) {
+        console.error('Error al crear pedido:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Listar pedidos de un cliente
+app.get('/api/customers/:dni/orders', async (req, res) => {
+    const { dni } = req.params;
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, error: 'dniRequerido' });
+    }
+
+    try {
+        const orders = await Order.find({ dni: dni.trim() }).sort({ creadoEl: -1 });
+        res.status(200).json({ success: true, pedidos: orders });
+    } catch (error) {
+        console.error('Error al obtener pedidos:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Cancelar pedido pendiente
+app.put('/api/customers/:dni/orders/:orderId/cancel', async (req, res) => {
+    const { dni, orderId } = req.params;
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, error: 'dniRequerido' });
+    }
+
+    if (!orderId || orderId.trim() === '') {
+        return res.status(400).json({ success: false, error: 'pedidoRequerido' });
+    }
+
+    try {
+        const order = await Order.findOne({ _id: orderId, dni: dni.trim() });
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'pedidoNoEncontrado' });
+        }
+
+        if (order.estado === 'entregado') {
+            return res.status(400).json({ success: false, error: 'pedidoEntregado' });
+        }
+
+        if (order.estado === 'cancelado') {
+            return res.status(400).json({ success: false, error: 'pedidoYaCancelado' });
+        }
+
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+        }
+
+        if (order.stockAjustado) {
+            await restaurarStockDeItems(order.items);
+            order.stockAjustado = false;
+        }
+
+        order.estado = 'cancelado';
+        await order.save();
+
+        const saldoActual = customer.saldoAFavor || 0;
+        customer.saldoAFavor = Number((saldoActual + order.total).toFixed(2));
+        await customer.save();
+
+        res.status(200).json({ success: true, pedido: order, saldoAFavor: customer.saldoAFavor });
+    } catch (error) {
+        console.error('Error al cancelar pedido:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// ============================================
+// ADMIN - Gestión de pedidos (ventas)
+// ============================================
+
+// Listar todos los pedidos con filtros opcionales (estado, dni)
+app.get('/api/orders', async (req, res) => {
+    try {
+        const { estado, dni, fechaDesde, fechaHasta } = req.query;
+        const filtros = {};
+        if (estado) filtros.estado = estado;
+        if (dni) filtros.dni = dni;
+
+        const fechaInicio = parseDateParam(fechaDesde, false);
+        const fechaFin = parseDateParam(fechaHasta, true);
+        if (fechaInicio || fechaFin) {
+            filtros.creadoEl = {};
+            if (fechaInicio) filtros.creadoEl.$gte = fechaInicio;
+            if (fechaFin) filtros.creadoEl.$lte = fechaFin;
+        }
+
+        const pedidos = await Order.find(filtros)
+            .sort({ creadoEl: -1 })
+            .populate('customer', 'nombre apellido dni');
+        res.json({ success: true, pedidos });
+    } catch (error) {
+        console.error('Error al listar pedidos (admin):', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Marcar pedido como despachado/entregado
+app.put('/api/orders/:orderId/dispatch', async (req, res) => {
+    const { orderId } = req.params;
+    if (!orderId || orderId.trim() === '') {
+        return res.status(400).json({ success: false, error: 'pedidoRequerido' });
+    }
+    try {
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'pedidoNoEncontrado' });
+        }
+
+        if (order.estado === 'cancelado') {
+            return res.status(400).json({ success: false, error: 'pedidoCancelado' });
+        }
+
+        if (order.estado === 'entregado') {
+            return res.status(400).json({ success: false, error: 'pedidoYaEntregado' });
+        }
+
+        order.estado = 'entregado';
+        order.fechaEntrega = new Date();
+        await order.save();
+    await registrarVentaProductos(order);
+    res.json({ success: true, pedido: order });
+    } catch (error) {
+        console.error('Error al despachar pedido (admin):', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Cancelar pedido (admin) y devolver el total al saldo del cliente
+app.put('/api/orders/:orderId/cancel', async (req, res) => {
+    const { orderId } = req.params;
+    if (!orderId || orderId.trim() === '') {
+        return res.status(400).json({ success: false, error: 'pedidoRequerido' });
+    }
+
+    try {
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'pedidoNoEncontrado' });
+        }
+
+        if (order.estado === 'entregado') {
+            return res.status(400).json({ success: false, error: 'pedidoEntregado' });
+        }
+
+        if (order.estado === 'cancelado') {
+            return res.status(400).json({ success: false, error: 'pedidoYaCancelado' });
+        }
+
+        if (order.stockAjustado) {
+            await restaurarStockDeItems(order.items);
+            order.stockAjustado = false;
+        }
+
+        // Actualizar estado
+        order.estado = 'cancelado';
+        await order.save();
+
+        // Devolver al saldo del cliente
+        const customer = await Customer.findOne({ dni: order.dni });
+        if (customer) {
+            const saldoActual = customer.saldoAFavor || 0;
+            customer.saldoAFavor = Number((saldoActual + order.total).toFixed(2));
+            await customer.save();
+        }
+
+        res.json({ success: true, pedido: order, saldoAFavor: customer ? customer.saldoAFavor : undefined });
+    } catch (error) {
+        console.error('Error al cancelar pedido (admin):', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// Repetir compra desde un pedido histórico (cancelado o entregado)
+app.post('/api/customers/:dni/orders/:orderId/repeat', async (req, res) => {
+    const { dni, orderId } = req.params;
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, error: 'dniRequerido' });
+    }
+
+    if (!orderId || orderId.trim() === '') {
+        return res.status(400).json({ success: false, error: 'pedidoRequerido' });
+    }
+
+    try {
+        const order = await Order.findOne({ _id: orderId, dni: dni.trim() });
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'pedidoNoEncontrado' });
+        }
+
+        if (order.estado === 'pendiente') {
+            return res.status(400).json({ success: false, error: 'pedidoPendiente' });
+        }
+
+        if (!order.items || order.items.length === 0) {
+            return res.status(400).json({ success: false, error: 'pedidoSinItems' });
+        }
+
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+        }
+
+        if (!customer.carrito || !Array.isArray(customer.carrito.items)) {
+            customer.carrito = { items: [], total: 0 };
+        }
+
+        const agregados = [];
+        const omitidos = [];
+
+        for (const orderItem of order.items) {
+            const cantidadSolicitada = Number(orderItem.cantidad) || 0;
+            if (cantidadSolicitada <= 0) {
+                continue;
+            }
+
+            let producto = null;
+            if (orderItem.productId) {
+                producto = await Producto.findById(orderItem.productId);
+            }
+
+            if (!producto) {
+                producto = await Producto.findOne({ nombre: orderItem.nombre });
+            }
+
+            if (!producto || producto.activo === false) {
+                omitidos.push({
+                    productId: orderItem.productId || null,
+                    nombre: orderItem.nombre,
+                    motivo: 'productoInexistente'
+                });
+                continue;
+            }
+
+            const stockDisponible = Number.isFinite(producto.stock) ? Number(producto.stock) : 0;
+            if (stockDisponible <= 0) {
+                omitidos.push({
+                    productId: producto._id,
+                    nombre: producto.nombre,
+                    motivo: 'sinStock'
+                });
+                continue;
+            }
+
+            const existingIndex = customer.carrito.items.findIndex(item => {
+                if (orderItem.productId && item.productId) {
+                    return item.productId.toString() === orderItem.productId.toString();
+                }
+                return item.nombre === orderItem.nombre;
+            });
+
+            const cantidadActualEnCarrito = existingIndex > -1 ? Number(customer.carrito.items[existingIndex].cantidad) || 0 : 0;
+            const maxAgregable = Math.max(stockDisponible - cantidadActualEnCarrito, 0);
+
+            if (maxAgregable <= 0) {
+                omitidos.push({
+                    productId: producto._id,
+                    nombre: producto.nombre,
+                    motivo: 'carritoSinCapacidadPorStock'
+                });
+                continue;
+            }
+
+            const cantidadAAgregar = Math.min(cantidadSolicitada, maxAgregable);
+
+            if (cantidadAAgregar <= 0) {
+                omitidos.push({
+                    productId: producto._id,
+                    nombre: producto.nombre,
+                    motivo: 'sinCantidadAgregada'
+                });
+                continue;
+            }
+
+            const precioUnitario = Number((producto.precio ?? orderItem.precioUnitario ?? 0).toFixed(2));
+
+            if (existingIndex > -1) {
+                customer.carrito.items[existingIndex].cantidad += cantidadAAgregar;
+                customer.carrito.items[existingIndex].precioUnitario = precioUnitario;
+                customer.carrito.items[existingIndex].subtotal = Number((customer.carrito.items[existingIndex].cantidad * precioUnitario).toFixed(2));
+            } else {
+                customer.carrito.items.push({
+                    productId: producto._id,
+                    nombre: producto.nombre,
+                    precioUnitario,
+                    cantidad: cantidadAAgregar,
+                    subtotal: Number((precioUnitario * cantidadAAgregar).toFixed(2))
+                });
+            }
+
+            agregados.push({
+                productId: producto._id,
+                nombre: producto.nombre,
+                cantidadAgregada: cantidadAAgregar,
+                cantidadSolicitada,
+                stockDisponible,
+                agregadoCompleto: cantidadAAgregar === cantidadSolicitada
+            });
+
+            if (cantidadAAgregar < cantidadSolicitada) {
+                omitidos.push({
+                    productId: producto._id,
+                    nombre: producto.nombre,
+                    motivo: 'stockParcial'
+                });
+            }
+        }
+
+        customer.carrito = recalculateCart(customer.carrito);
+        await customer.save();
+
+        const totalAgregado = agregados.reduce((acc, item) => acc + item.cantidadAgregada, 0);
+        const resumen = {
+            productosAgregados: agregados,
+            productosOmitidos: omitidos,
+            totalAgregado,
+            sinCambios: agregados.length === 0
+        };
+
+        let mensaje = 'Productos agregados al carrito correctamente.';
+        if (resumen.sinCambios || totalAgregado === 0) {
+            mensaje = 'No se pudieron agregar productos al carrito. Verifica el stock disponible.';
+        } else if (omitidos.length > 0) {
+            mensaje = 'Se agregaron productos al carrito. Algunos artículos no pudieron agregarse por stock o disponibilidad.';
+        }
+
+        res.status(200).json({
+            success: true,
+            carrito: customer.carrito,
+            resumen,
+            mensaje
+        });
+    } catch (error) {
+        console.error('Error al repetir pedido:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
 // Obtener datos completos del cliente por DNI
 app.get('/api/customers/:dni', async (req, res) => {
     const { dni } = req.params;
@@ -286,7 +952,7 @@ app.get('/api/customers/:dni', async (req, res) => {
             telefono: customer.telefono,
             domicilio: customer.domicilio,
             codigoPostal: customer.codigoPostal,
-            saldo: 2000.00 // Valor por defecto, aquí puedes implementar lógica de saldo real
+            saldoAFavor: customer.saldoAFavor || 0
         };
         
         res.status(200).json({ success: true, cliente: customerData });
@@ -791,6 +1457,1188 @@ app.delete('/api/categorias/:id', async (req, res) => {
         
     } catch (error) {
         console.error('Error al eliminar categoría:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// ============================================
+// PRODUCTOS
+// ============================================
+
+// Definir esquema para productos
+const productoSchema = new mongoose.Schema({
+    nombre: { 
+        type: String, 
+        required: true,
+        trim: true
+    },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    descripcion: { 
+        type: String, 
+        default: '' 
+    },
+    precio: { 
+        type: Number, 
+        required: true,
+        min: 0
+    },
+    precioAnterior: {
+        type: Number,
+        default: null
+    },
+    stock: { 
+        type: Number, 
+        default: 0,
+        min: 0
+    },
+    vendidos: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    categoriaId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'categorias',
+        required: true
+    },
+    imagen: { 
+        type: String,
+        default: '' 
+    },
+    imagenes: [{ 
+        type: String 
+    }],
+    marca: {
+        type: String,
+        default: ''
+    },
+    codigo: {
+        type: String,
+        default: ''
+    },
+    unidadMedida: {
+        type: String,
+        default: 'unidad'
+    },
+    destacado: { 
+        type: Boolean, 
+        default: false 
+    },
+    enOferta: {
+        type: Boolean,
+        default: false
+    },
+    activo: { 
+        type: Boolean, 
+        default: true 
+    },
+    fechaCreacion: { 
+        type: Date, 
+        default: Date.now 
+    }
+});
+
+productoSchema.index({ nombre: 1 });
+productoSchema.index({ categoriaId: 1 });
+productoSchema.index({ activo: 1 });
+
+const Producto = mongoose.model('productos', productoSchema);
+
+async function registrarVentaProductos(order) {
+    if (!order || !Array.isArray(order.items) || order.items.length === 0) {
+        return;
+    }
+
+    const bulkOps = [];
+
+    for (const item of order.items) {
+        const rawId = item.productId || null;
+        const cantidad = Number(item.cantidad) || 0;
+        if (!rawId || cantidad <= 0) {
+            continue;
+        }
+
+        const idString = rawId.toString();
+        if (!mongoose.Types.ObjectId.isValid(idString)) {
+            continue;
+        }
+
+        const productId = new mongoose.Types.ObjectId(idString);
+
+        bulkOps.push({
+            updateOne: {
+                filter: { _id: productId },
+                update: { $inc: { vendidos: cantidad } }
+            }
+        });
+    }
+
+    if (bulkOps.length > 0) {
+        try {
+            await Producto.bulkWrite(bulkOps, { ordered: false });
+        } catch (error) {
+            console.error('Error incrementando vendidos de productos:', error);
+        }
+    }
+}
+
+async function verificarYDescontarStock(items) {
+    const cantidadesPorProducto = new Map();
+
+    if (Array.isArray(items)) {
+        for (const rawItem of items) {
+            if (!rawItem || !rawItem.productId) {
+                continue;
+            }
+
+            const idString = rawItem.productId.toString();
+            if (!mongoose.Types.ObjectId.isValid(idString)) {
+                continue;
+            }
+
+            const cantidad = Number(rawItem.cantidad) || 0;
+            if (cantidad <= 0) {
+                continue;
+            }
+
+            const acumulado = cantidadesPorProducto.get(idString) || 0;
+            cantidadesPorProducto.set(idString, acumulado + cantidad);
+        }
+    }
+
+    if (cantidadesPorProducto.size === 0) {
+        return { descontado: false, faltantes: [] };
+    }
+
+    const objectIds = Array.from(cantidadesPorProducto.keys()).map(id => new mongoose.Types.ObjectId(id));
+    const productos = await Producto.find({ _id: { $in: objectIds } }).select('nombre stock');
+
+    const encontrados = new Set(productos.map(prod => prod._id.toString()));
+    const faltantes = [];
+
+    for (const [productId, cantidadSolicitada] of cantidadesPorProducto.entries()) {
+        if (!encontrados.has(productId)) {
+            faltantes.push({
+                productId,
+                nombre: null,
+                stockDisponible: 0,
+                cantidadSolicitada,
+                motivo: 'productoNoEncontrado'
+            });
+        }
+    }
+
+    for (const producto of productos) {
+        const productId = producto._id.toString();
+        const cantidadSolicitada = cantidadesPorProducto.get(productId) || 0;
+        const stockDisponible = Number(producto.stock) || 0;
+
+        if (stockDisponible < cantidadSolicitada) {
+            faltantes.push({
+                productId,
+                nombre: producto.nombre,
+                stockDisponible,
+                cantidadSolicitada,
+                motivo: 'stockInsuficiente'
+            });
+        }
+    }
+
+    if (faltantes.length > 0) {
+        return { descontado: false, faltantes };
+    }
+
+    const bulkOps = [];
+    for (const producto of productos) {
+        const productId = producto._id.toString();
+        const cantidad = cantidadesPorProducto.get(productId) || 0;
+        if (cantidad <= 0) {
+            continue;
+        }
+
+        bulkOps.push({
+            updateOne: {
+                filter: { _id: producto._id },
+                update: { $inc: { stock: -cantidad } }
+            }
+        });
+    }
+
+    if (bulkOps.length > 0) {
+        await Producto.bulkWrite(bulkOps, { ordered: false });
+        return { descontado: true, faltantes: [] };
+    }
+
+    return { descontado: false, faltantes: [] };
+}
+
+async function restaurarStockDeItems(items) {
+    const cantidadesPorProducto = new Map();
+
+    if (Array.isArray(items)) {
+        for (const rawItem of items) {
+            if (!rawItem || !rawItem.productId) {
+                continue;
+            }
+
+            const idString = rawItem.productId.toString();
+            if (!mongoose.Types.ObjectId.isValid(idString)) {
+                continue;
+            }
+
+            const cantidad = Number(rawItem.cantidad) || 0;
+            if (cantidad <= 0) {
+                continue;
+            }
+
+            const acumulado = cantidadesPorProducto.get(idString) || 0;
+            cantidadesPorProducto.set(idString, acumulado + cantidad);
+        }
+    }
+
+    if (cantidadesPorProducto.size === 0) {
+        return;
+    }
+
+    const bulkOps = [];
+    for (const [productId, cantidad] of cantidadesPorProducto.entries()) {
+        if (cantidad <= 0) {
+            continue;
+        }
+
+        const objectId = new mongoose.Types.ObjectId(productId);
+        bulkOps.push({
+            updateOne: {
+                filter: { _id: objectId },
+                update: { $inc: { stock: cantidad } }
+            }
+        });
+    }
+
+    if (bulkOps.length > 0) {
+        await Producto.bulkWrite(bulkOps, { ordered: false });
+    }
+}
+
+function parseDateParam(value, endOfDay = false) {
+    if (!value) return null;
+    const fecha = new Date(value);
+    if (isNaN(fecha.getTime())) return null;
+    if (endOfDay) {
+        fecha.setHours(23, 59, 59, 999);
+    } else {
+        fecha.setHours(0, 0, 0, 0);
+    }
+    return fecha;
+}
+
+function buildFechaMatch(fechaInicio, fechaFin) {
+    const rango = {};
+    if (fechaInicio) rango.$gte = fechaInicio;
+    if (fechaFin) rango.$lte = fechaFin;
+    return Object.keys(rango).length ? rango : undefined;
+}
+
+// ============================================
+// PROMOCIONES
+// ============================================
+
+const promocionSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'productos', required: true },
+    tipo: { type: String, enum: ['porcentaje', 'monto'], required: true },
+    valor: { type: Number, required: true, min: 0 },
+    precioOriginal: { type: Number, required: true, min: 0 },
+    precioPromocional: { type: Number, required: true, min: 0 },
+    fechaInicio: { type: Date, required: true },
+    fechaFin: { type: Date, required: true },
+    activo: { type: Boolean, default: true }
+}, { timestamps: { createdAt: 'creadoEl', updatedAt: 'actualizadoEl' } });
+
+promocionSchema.index({ productId: 1, fechaInicio: 1, fechaFin: 1 });
+
+const Promocion = mongoose.model('promociones', promocionSchema);
+
+function calcularPrecioPromocional(precioBase, tipo, valor) {
+    let precio = Number(precioBase) || 0;
+    let resultado = precio;
+    if (tipo === 'porcentaje') {
+        const pct = Math.min(Math.max(Number(valor) || 0, 0), 100);
+        resultado = precio * (1 - pct / 100);
+    } else if (tipo === 'monto') {
+        resultado = precio - (Number(valor) || 0);
+    }
+    return Number(Math.max(0, resultado).toFixed(2));
+}
+
+async function actualizarPromocionesPorCambioDePrecio(productId, nuevoPrecio) {
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId.toString())) {
+        return 0;
+    }
+
+    const precioNormalizado = Number(Number(nuevoPrecio).toFixed(2));
+    if (!Number.isFinite(precioNormalizado) || precioNormalizado < 0) {
+        return 0;
+    }
+
+    const promociones = await Promocion.find({ productId: productId });
+    if (!promociones || promociones.length === 0) {
+        return 0;
+    }
+
+    const bulkOps = promociones.map(promocion => {
+        const precioPromocional = calcularPrecioPromocional(precioNormalizado, promocion.tipo, promocion.valor);
+        return {
+            updateOne: {
+                filter: { _id: promocion._id },
+                update: {
+                    $set: {
+                        precioOriginal: precioNormalizado,
+                        precioPromocional
+                    }
+                }
+            }
+        };
+    });
+
+    if (bulkOps.length === 0) {
+        return 0;
+    }
+
+    const resultado = await Promocion.bulkWrite(bulkOps, { ordered: false });
+    return resultado.modifiedCount || 0;
+}
+
+// Crear promoción
+app.post('/api/promociones', async (req, res) => {
+    try {
+        let { productId, tipo, valor, fechaInicio, fechaFin } = req.body;
+
+        if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ success: false, reason: 'productoInvalido' });
+        }
+        if (!tipo || !['porcentaje', 'monto'].includes(tipo)) {
+            return res.status(400).json({ success: false, reason: 'tipoInvalido' });
+        }
+        valor = Number(valor);
+        if (isNaN(valor) || valor < 0) {
+            return res.status(400).json({ success: false, reason: 'valorInvalido' });
+        }
+        if (!fechaInicio || !fechaFin) {
+            return res.status(400).json({ success: false, reason: 'fechasRequeridas' });
+        }
+        const ini = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        if (isNaN(ini.getTime()) || isNaN(fin.getTime()) || fin < ini) {
+            return res.status(400).json({ success: false, reason: 'rangoFechasInvalido' });
+        }
+
+        const producto = await Producto.findById(productId);
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+
+        const precioPromocional = calcularPrecioPromocional(producto.precio, tipo, valor);
+
+        const promo = await Promocion.create({
+            productId,
+            tipo,
+            valor,
+            precioOriginal: producto.precio,
+            precioPromocional,
+            fechaInicio: ini,
+            fechaFin: fin,
+            activo: true
+        });
+
+        res.status(201).json({ success: true, promocion: promo });
+    } catch (error) {
+        console.error('Error al crear promoción:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Listar promociones
+app.get('/api/promociones', async (req, res) => {
+    try {
+        const { activas } = req.query;
+        const filtros = {};
+        if (activas === 'true') {
+            const ahora = new Date();
+            filtros.$and = [
+                { fechaInicio: { $lte: ahora } },
+                { fechaFin: { $gte: ahora } },
+                { activo: true }
+            ];
+        }
+        const promociones = await Promocion.find(filtros)
+            .sort({ creadoEl: -1 })
+            .populate('productId', 'nombre precio imagen');
+        res.json({ success: true, promociones });
+    } catch (error) {
+        console.error('Error al listar promociones:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Actualizar promoción
+app.put('/api/promociones/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        let { tipo, valor, fechaInicio, fechaFin, activo } = req.body;
+
+        const promo = await Promocion.findById(id);
+        if (!promo) return res.status(404).json({ success: false, reason: 'promocionNoEncontrada' });
+
+        if (tipo !== undefined) {
+            if (!['porcentaje', 'monto'].includes(tipo)) {
+                return res.status(400).json({ success: false, reason: 'tipoInvalido' });
+            }
+            promo.tipo = tipo;
+        }
+        if (valor !== undefined) {
+            const v = Number(valor);
+            if (isNaN(v) || v < 0) return res.status(400).json({ success: false, reason: 'valorInvalido' });
+            promo.valor = v;
+        }
+        if (fechaInicio !== undefined) {
+            const ini = new Date(fechaInicio);
+            if (isNaN(ini.getTime())) return res.status(400).json({ success: false, reason: 'fechaInicioInvalida' });
+            promo.fechaInicio = ini;
+        }
+        if (fechaFin !== undefined) {
+            const fin = new Date(fechaFin);
+            if (isNaN(fin.getTime())) return res.status(400).json({ success: false, reason: 'fechaFinInvalida' });
+            promo.fechaFin = fin;
+        }
+        if (promo.fechaFin < promo.fechaInicio) {
+            return res.status(400).json({ success: false, reason: 'rangoFechasInvalido' });
+        }
+        if (activo !== undefined) promo.activo = !!activo;
+
+        // Recalcular en base al precio actual del producto
+        const producto = await Producto.findById(promo.productId);
+        if (!producto) return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        promo.precioOriginal = producto.precio;
+        promo.precioPromocional = calcularPrecioPromocional(producto.precio, promo.tipo, promo.valor);
+
+        await promo.save();
+        res.json({ success: true, promocion: promo });
+    } catch (error) {
+        console.error('Error al actualizar promoción:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Eliminar promoción
+app.delete('/api/promociones/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deleted = await Promocion.findByIdAndDelete(id);
+        if (!deleted) return res.status(404).json({ success: false, reason: 'promocionNoEncontrada' });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error al eliminar promoción:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+async function buildFavoritosResponse(customer) {
+    if (!customer) {
+        return { favoritos: [], favoritosIds: [] };
+    }
+
+    const productoIds = Array.isArray(customer.favoritos)
+        ? customer.favoritos.map(id => id.toString())
+        : [];
+
+    if (productoIds.length === 0) {
+        return { favoritos: [], favoritosIds: [] };
+    }
+
+    const productos = await Producto.find({ _id: { $in: productoIds } }).lean();
+    const productosMap = new Map(productos.map(prod => [prod._id.toString(), prod]));
+
+    const favoritosOrdenados = [];
+    const idsValidos = [];
+
+    for (const id of productoIds) {
+        const producto = productosMap.get(id);
+        if (producto && producto.activo !== false) {
+            favoritosOrdenados.push(producto);
+            idsValidos.push(id);
+        }
+    }
+
+    if (idsValidos.length !== productoIds.length) {
+        customer.favoritos = idsValidos;
+        await customer.save();
+    }
+
+    return { favoritos: favoritosOrdenados, favoritosIds: idsValidos };
+}
+
+// ============================================
+// FAVORITOS DE CLIENTES
+// ============================================
+
+app.get('/api/customers/:dni/favorites', async (req, res) => {
+    const { dni } = req.params;
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, reason: 'dniRequerido' });
+    }
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, reason: 'clienteNoEncontrado' });
+        }
+
+        const data = await buildFavoritosResponse(customer);
+        return res.json({ success: true, ...data });
+    } catch (error) {
+        console.error('Error al obtener favoritos:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+app.post('/api/customers/:dni/favorites', async (req, res) => {
+    const { dni } = req.params;
+    const { productId } = req.body;
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, reason: 'dniRequerido' });
+    }
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ success: false, reason: 'productoInvalido' });
+    }
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, reason: 'clienteNoEncontrado' });
+        }
+
+        const producto = await Producto.findById(productId).lean();
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+
+        if (producto.activo === false) {
+            return res.status(400).json({ success: false, reason: 'productoInactivo' });
+        }
+
+        if (!Array.isArray(customer.favoritos)) {
+            customer.favoritos = [];
+        }
+
+        const yaFavorito = customer.favoritos.some(id => id.toString() === productId);
+        if (!yaFavorito) {
+            customer.favoritos.push(productId);
+            await customer.save();
+        }
+
+        const data = await buildFavoritosResponse(customer);
+        return res.json({
+            success: true,
+            message: 'Producto agregado a favoritos',
+            ...data
+        });
+    } catch (error) {
+        console.error('Error al agregar favorito:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+app.delete('/api/customers/:dni/favorites/:productId', async (req, res) => {
+    const { dni, productId } = req.params;
+
+    if (!dni || dni.trim() === '') {
+        return res.status(400).json({ success: false, reason: 'dniRequerido' });
+    }
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ success: false, reason: 'productoInvalido' });
+    }
+
+    try {
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, reason: 'clienteNoEncontrado' });
+        }
+
+        if (!Array.isArray(customer.favoritos) || customer.favoritos.length === 0) {
+            return res.json({ success: true, favoritos: [], favoritosIds: [] });
+        }
+
+        const indice = customer.favoritos.findIndex(id => id.toString() === productId);
+        if (indice > -1) {
+            customer.favoritos.splice(indice, 1);
+            await customer.save();
+        }
+
+        const data = await buildFavoritosResponse(customer);
+        return res.json({
+            success: true,
+            message: 'Producto eliminado de favoritos',
+            ...data
+        });
+    } catch (error) {
+        console.error('Error al eliminar favorito:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Subir imagen de producto
+app.post('/api/productos/upload-imagen', upload.single('imagen'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, reason: 'noImagenProporcionada' });
+        }
+        
+        const imageBuffer = fs.readFileSync(req.file.path);
+        const base64Image = imageBuffer.toString('base64');
+        const mimeType = req.file.mimetype;
+        const imageUrl = `data:${mimeType};base64,${base64Image}`;
+
+        fs.unlinkSync(req.file.path);
+        
+        res.json({ 
+            success: true, 
+            imageUrl: imageUrl
+        });
+
+    } catch (error) {
+        console.error('Error al procesar imagen:', error);
+        
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        
+        res.status(500).json({ success: false, reason: 'errorSubidaImagen', error: error.message });
+    }
+});
+
+// Crear nuevo producto
+app.post('/api/productos', async (req, res) => {
+    try {
+        let { nombre, descripcion, precio, precioAnterior, stock, categoriaId, imagen, imagenes, 
+              marca, codigo, unidadMedida, destacado, enOferta } = req.body;
+        
+        if (!nombre || nombre.trim() === '') {
+            return res.status(400).json({ success: false, reason: 'nombreRequerido' });
+        }
+        
+        nombre = nombre.trim();
+
+        if (precio === undefined || precio === null || precio < 0) {
+            return res.status(400).json({ success: false, reason: 'precioInvalido' });
+        }
+
+        // Verificar que la categoría fue proporcionada y existe
+        if (!categoriaId) {
+            return res.status(400).json({ success: false, reason: 'categoriaRequerida' });
+        }
+        const categoria = await Categoria.findById(categoriaId);
+        if (!categoria) {
+            return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+        }
+        // Solo permitir nivel 1 o 2 (subcategorías)
+        if (categoria.nivel === 0) {
+            return res.status(400).json({ success: false, reason: 'categoriaNivelInvalido' });
+        }
+
+        // Generar slug único
+        let slug = generateSlug(nombre);
+        let slugFinal = slug;
+        let contador = 1;
+ 
+        while (await Producto.findOne({ slug: slugFinal })) {
+            slugFinal = `${slug}-${contador}`;
+            contador++;
+        }
+
+        // Verificar si ya existe un producto con el mismo nombre
+        const existente = await Producto.findOne({ nombre: nombre });
+        if (existente) {
+            return res.status(400).json({ success: false, reason: 'productoExiste' });
+        }
+        
+        const nuevoProducto = await Producto.create({
+            nombre,
+            slug: slugFinal,
+            descripcion: descripcion || '',
+            precio: parseFloat(precio),
+            precioAnterior: precioAnterior ? parseFloat(precioAnterior) : null,
+            stock: stock !== undefined ? parseInt(stock) : 0,
+            categoriaId: categoriaId,
+            imagen: imagen || '',
+            imagenes: imagenes || [],
+            marca: marca || '',
+            codigo: codigo || '',
+            unidadMedida: unidadMedida || 'unidad',
+            destacado: destacado || false,
+            enOferta: enOferta || false,
+            activo: true
+        });
+        
+        console.log('✅ Producto creado:', nuevoProducto.nombre);
+        res.status(201).json({ success: true, producto: nuevoProducto });
+        
+    } catch (error) {
+        console.error('Error al crear producto:', error);
+        res.status(500).json({ success: false, reason: 'serverError', error: error.message });
+    }
+});
+
+// Obtener todos los productos (con filtros opcionales)
+app.get('/api/productos', async (req, res) => {
+    try {
+        const { categoriaId, destacado, enOferta, activo, buscar } = req.query;
+        
+        let filtros = {};
+        
+        if (categoriaId) filtros.categoriaId = categoriaId;
+        if (destacado !== undefined) filtros.destacado = destacado === 'true';
+        if (enOferta !== undefined) filtros.enOferta = enOferta === 'true';
+        if (activo !== undefined) filtros.activo = activo === 'true';
+        
+        if (buscar) {
+            filtros.$or = [
+                { nombre: { $regex: buscar, $options: 'i' } },
+                { descripcion: { $regex: buscar, $options: 'i' } },
+                { marca: { $regex: buscar, $options: 'i' } }
+            ];
+        }
+        
+        const productos = await Producto.find(filtros)
+            .populate('categoriaId', 'nombre slug')
+            .sort({ fechaCreacion: -1 });
+        
+        res.json({ success: true, productos });
+    } catch (error) {
+        console.error('Error al obtener productos:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener productos destacados
+app.get('/api/productos/destacados', async (req, res) => {
+    try {
+        const productos = await Producto.find({ destacado: true, activo: true })
+            .populate('categoriaId', 'nombre slug')
+            .limit(10)
+            .sort({ fechaCreacion: -1 });
+        
+        res.json({ success: true, productos });
+    } catch (error) {
+        console.error('Error al obtener productos destacados:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener productos en oferta
+app.get('/api/productos/ofertas', async (req, res) => {
+    try {
+        const productos = await Producto.find({ enOferta: true, activo: true })
+            .populate('categoriaId', 'nombre slug')
+            .sort({ fechaCreacion: -1 });
+        
+        res.json({ success: true, productos });
+    } catch (error) {
+        console.error('Error al obtener productos en oferta:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener un producto por ID
+app.get('/api/productos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const producto = await Producto.findById(id)
+            .populate('categoriaId', 'nombre slug nivel');
+        
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+        
+        res.json({ success: true, producto });
+    } catch (error) {
+        console.error('Error al obtener producto:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Obtener producto por slug
+app.get('/api/productos/slug/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        
+        const producto = await Producto.findOne({ slug: slug })
+            .populate('categoriaId', 'nombre slug');
+        
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+        
+        res.json({ success: true, producto });
+    } catch (error) {
+        console.error('Error al obtener producto por slug:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Actualizar producto
+app.put('/api/productos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        let { nombre, descripcion, precio, precioAnterior, stock, categoriaId, imagen, imagenes,
+              marca, codigo, unidadMedida, destacado, enOferta, activo } = req.body;
+        
+        const producto = await Producto.findById(id);
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+
+        const precioAnteriorProducto = Number(producto.precio);
+        let nuevoPrecioAsignado = null;
+        
+        if (nombre !== undefined) {
+            nombre = nombre.trim();
+            if (nombre === '') {
+                return res.status(400).json({ success: false, reason: 'nombreRequerido' });
+            }
+            
+            const existente = await Producto.findOne({ 
+                nombre: nombre, 
+                _id: { $ne: id }
+            });
+            
+            if (existente) {
+                return res.status(400).json({ success: false, reason: 'productoExiste' });
+            }
+            
+            producto.nombre = nombre;
+            producto.slug = generateSlug(nombre);
+        }
+        
+        if (descripcion !== undefined) producto.descripcion = descripcion;
+        if (precio !== undefined) {
+            const precioNumerico = Number(parseFloat(precio).toFixed(2));
+            if (!Number.isFinite(precioNumerico) || precioNumerico < 0) {
+                return res.status(400).json({ success: false, reason: 'precioInvalido' });
+            }
+            producto.precio = precioNumerico;
+            nuevoPrecioAsignado = precioNumerico;
+        }
+        if (precioAnterior !== undefined) {
+            const precioAnteriorNormalizado = precioAnterior ? Number(parseFloat(precioAnterior).toFixed(2)) : null;
+            if (precioAnteriorNormalizado !== null && (!Number.isFinite(precioAnteriorNormalizado) || precioAnteriorNormalizado < 0)) {
+                return res.status(400).json({ success: false, reason: 'precioAnteriorInvalido' });
+            }
+            producto.precioAnterior = precioAnteriorNormalizado;
+        }
+        if (stock !== undefined) producto.stock = parseInt(stock);
+        if (categoriaId !== undefined) {
+            // No permitir dejar la categoría en null
+            if (!categoriaId) {
+                return res.status(400).json({ success: false, reason: 'categoriaRequerida' });
+            }
+            const categoria = await Categoria.findById(categoriaId);
+            if (!categoria) {
+                return res.status(404).json({ success: false, reason: 'categoriaNoEncontrada' });
+            }
+            if (categoria.nivel === 0) {
+                return res.status(400).json({ success: false, reason: 'categoriaNivelInvalido' });
+            }
+            producto.categoriaId = categoriaId;
+        }
+        if (imagen !== undefined) producto.imagen = imagen;
+        if (imagenes !== undefined) producto.imagenes = imagenes;
+        if (marca !== undefined) producto.marca = marca;
+        if (codigo !== undefined) producto.codigo = codigo;
+        if (unidadMedida !== undefined) producto.unidadMedida = unidadMedida;
+        if (destacado !== undefined) producto.destacado = destacado;
+        if (enOferta !== undefined) producto.enOferta = enOferta;
+        if (activo !== undefined) producto.activo = activo;
+        
+        await producto.save();
+
+        if (nuevoPrecioAsignado !== null) {
+            const cambioPrecio = Math.abs((precioAnteriorProducto ?? 0) - nuevoPrecioAsignado);
+            if (cambioPrecio > 0.009) {
+                try {
+                    const promocionesActualizadas = await actualizarPromocionesPorCambioDePrecio(producto._id, nuevoPrecioAsignado);
+                    if (promocionesActualizadas > 0) {
+                        console.log(`🔄 Promociones actualizadas (${promocionesActualizadas}) para producto ${producto.nombre}`);
+                    }
+                } catch (promoError) {
+                    console.error('Error al actualizar promociones tras cambio de precio:', promoError);
+                }
+            }
+        }
+
+        console.log('✅ Producto actualizado:', producto.nombre);
+        res.json({ success: true, producto });
+        
+    } catch (error) {
+        console.error('Error al actualizar producto:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Eliminar producto
+app.delete('/api/productos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const producto = await Producto.findById(id);
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+        
+        // TODO: Verificar que no esté en pedidos activos o carritos
+        
+        await Producto.findByIdAndDelete(id);
+        
+        console.log('✅ Producto eliminado:', producto.nombre);
+        res.json({ success: true, message: 'Producto eliminado correctamente' });
+        
+    } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// Actualizar stock de producto
+app.patch('/api/productos/:id/stock', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { stock } = req.body;
+        
+        if (stock === undefined || stock < 0) {
+            return res.status(400).json({ success: false, reason: 'stockInvalido' });
+        }
+        
+        const producto = await Producto.findByIdAndUpdate(
+            id,
+            { stock: parseInt(stock) },
+            { new: true }
+        );
+        
+        if (!producto) {
+            return res.status(404).json({ success: false, reason: 'productoNoEncontrado' });
+        }
+        
+        console.log('✅ Stock actualizado:', producto.nombre, '- Stock:', producto.stock);
+        res.json({ success: true, producto });
+        
+    } catch (error) {
+        console.error('Error al actualizar stock:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// ============================================
+// REPORTES DE VENTAS
+// ============================================
+
+app.get('/api/reports/top-products', async (req, res) => {
+    try {
+        const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+        const fechaInicio = parseDateParam(req.query.fechaInicio);
+        const fechaFin = parseDateParam(req.query.fechaFin, true);
+
+        const match = { estado: 'entregado' };
+        const rango = buildFechaMatch(fechaInicio, fechaFin);
+        if (rango) {
+            match.creadoEl = rango;
+        }
+
+        const pipeline = [
+            { $match: match },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.productId',
+                    cantidadVendida: { $sum: '$items.cantidad' },
+                    totalRecaudado: { $sum: '$items.subtotal' },
+                    nombreFallback: { $first: '$items.nombre' }
+                }
+            },
+            { $sort: { cantidadVendida: -1, totalRecaudado: -1 } },
+            { $limit: limit },
+            {
+                $lookup: {
+                    from: 'productos',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'producto'
+                }
+            },
+            { $unwind: { path: '$producto', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: 'categorias',
+                    localField: 'producto.categoriaId',
+                    foreignField: '_id',
+                    as: 'categoria'
+                }
+            },
+            { $unwind: { path: '$categoria', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    _id: 0,
+                    productId: '$_id',
+                    nombre: { $ifNull: ['$producto.nombre', '$nombreFallback'] },
+                    cantidadVendida: 1,
+                    totalRecaudado: 1,
+                    categoria: { $ifNull: ['$categoria.nombre', 'Sin categoría'] },
+                    vendidosHistorico: { $ifNull: ['$producto.vendidos', 0] },
+                    stockActual: '$producto.stock'
+                }
+            }
+        ];
+
+        const resultados = await Order.aggregate(pipeline);
+        res.json({ success: true, data: resultados });
+    } catch (error) {
+        console.error('Error generando reporte de top productos:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+app.get('/api/reports/products-by-category', async (req, res) => {
+    try {
+        const fechaInicio = parseDateParam(req.query.fechaInicio);
+        const fechaFin = parseDateParam(req.query.fechaFin, true);
+
+        const match = { estado: 'entregado' };
+        const rango = buildFechaMatch(fechaInicio, fechaFin);
+        if (rango) {
+            match.creadoEl = rango;
+        }
+
+        const pipeline = [
+            { $match: match },
+            { $unwind: '$items' },
+            {
+                $lookup: {
+                    from: 'productos',
+                    localField: 'items.productId',
+                    foreignField: '_id',
+                    as: 'producto'
+                }
+            },
+            { $unwind: { path: '$producto', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: 'categorias',
+                    localField: 'producto.categoriaId',
+                    foreignField: '_id',
+                    as: 'categoria'
+                }
+            },
+            { $unwind: { path: '$categoria', preserveNullAndEmptyArrays: true } },
+            {
+                $group: {
+                    _id: {
+                        categoriaId: '$categoria._id',
+                        nombre: { $ifNull: ['$categoria.nombre', 'Sin categoría'] }
+                    },
+                    cantidadVendida: { $sum: '$items.cantidad' },
+                    totalRecaudado: { $sum: '$items.subtotal' }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    categoriaId: '$_id.categoriaId',
+                    categoria: '$_id.nombre',
+                    cantidadVendida: 1,
+                    totalRecaudado: 1
+                }
+            },
+            { $sort: { cantidadVendida: -1, categoria: 1 } }
+        ];
+
+        const resultados = await Order.aggregate(pipeline);
+        res.json({ success: true, data: resultados });
+    } catch (error) {
+        console.error('Error generando reporte por categoría:', error);
+        res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+app.get('/api/reports/sales-by-period', async (req, res) => {
+    try {
+        const fechaInicio = parseDateParam(req.query.fechaInicio);
+        const fechaFin = parseDateParam(req.query.fechaFin, true);
+
+        if (!fechaInicio && !fechaFin) {
+            return res.status(400).json({ success: false, reason: 'fechasRequeridas' });
+        }
+
+        const match = { estado: 'entregado' };
+        const rango = buildFechaMatch(fechaInicio, fechaFin);
+        if (rango) {
+            match.creadoEl = rango;
+        }
+
+        const pipeline = [
+            { $match: match },
+            { $unwind: '$items' },
+            {
+                $addFields: {
+                    fechaClave: {
+                        $dateToString: {
+                            format: '%Y-%m-%d',
+                            date: '$creadoEl',
+                            timezone: 'UTC'
+                        }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: { fecha: '$fechaClave', pedido: '$_id' },
+                    fecha: { $first: '$fechaClave' },
+                    totalPedido: { $first: '$total' },
+                    cantidadProductos: { $sum: '$items.cantidad' }
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id.fecha',
+                    fecha: { $first: '$fecha' },
+                    cantidadPedidos: { $sum: 1 },
+                    cantidadProductos: { $sum: '$cantidadProductos' },
+                    totalRecaudado: { $sum: '$totalPedido' }
+                }
+            },
+            { $sort: { fecha: 1 } }
+        ];
+
+        const resultados = await Order.aggregate(pipeline);
+
+        const resumen = resultados.reduce((acc, fila) => {
+            acc.cantidadPedidos += fila.cantidadPedidos;
+            acc.cantidadProductos += fila.cantidadProductos;
+            acc.totalRecaudado += fila.totalRecaudado;
+            return acc;
+        }, { cantidadPedidos: 0, cantidadProductos: 0, totalRecaudado: 0 });
+
+        res.json({ success: true, data: resultados, resumen });
+    } catch (error) {
+        console.error('Error generando reporte por periodo:', error);
         res.status(500).json({ success: false, reason: 'serverError' });
     }
 });

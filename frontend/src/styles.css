@@ -27,6 +27,31 @@ body {
     justify-content: center;
 }
 
+/* Global UI scaling: approximate 80% zoom without changing each component */
+app-root {
+    zoom: 0.8; /* Works in Chromium-based browsers (Chrome, Edge, Opera) */
+}
+
+/* Keep background layers scaled consistently with the app */
+#backgroundWrapper {
+    zoom: 0.8;
+}
+
+/* Firefox fallback: browsers that don't support zoom will use transform */
+@supports not (zoom: 1) {
+    app-root {
+        transform: scale(0.8);
+        transform-origin: top left;
+        width: 125%; /* compensate the scale to keep layout width */
+    }
+    #backgroundWrapper {
+        transform: scale(0.8);
+        transform-origin: top left;
+        width: 125%;
+        height: 125%;
+    }
+}
+
 h1 {
     font-family: 'Inter', sans-serif;
     font-size: 40px;
@@ -135,6 +160,43 @@ button:active {
 
 #backgroundImage.loginStyle {
     filter: blur(4px);
+}
+
+/* ---- Global card sizing variables ---- */
+:root {
+    /* Layout */
+    --card-grid-gap: 16px;
+    --card-border-width: 1px;
+    --card-radius: 12px;
+
+    /* Media */
+    --card-image-height: 160px;
+
+    /* Content paddings and spacing */
+    --card-info-padding: 12px;
+    --card-info-gap: 6px;
+    --card-actions-padding: 12px;
+    --card-actions-gap: 8px;
+    --card-actions-border-width: 1px;
+
+    /* Typography */
+    --card-title-font-size: 16px;
+    --card-title-min-height: 42px;
+    --card-desc-font-size: 13px;
+    --card-price-font-size: 19px;
+    --card-badge-font-size: 11px;
+    --card-badge-padding: 3px 8px;
+    --card-stock-font-size: 11px;
+
+    /* Controls */
+    --qty-btn-size: 32px;
+    --qty-btn-font-size: 18px;
+    --qty-count-min-width: 36px;
+    --qty-count-font-size: 16px;
+    --add-btn-padding: 10px 12px;
+    --add-btn-font-size: 14px;
+    --fav-btn-min-width: 52px;
+    --fav-btn-font-size: 22px;
 }
 
 .card {
