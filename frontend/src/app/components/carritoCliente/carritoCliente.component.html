@@ -1,0 +1,108 @@
+<div class="carrito-container">
+  <div class="carrito-header">
+    <h1 class="carrito-title">Mi Carrito</h1>
+    <div class="header-buttons">
+      <button class="btn-volver" (click)="volverAProductos()">
+        ← Seguir Comprando
+      </button>
+    </div>
+  </div>
+
+  <div class="carrito-content" *ngIf="!cargando">
+    <!-- Carrito vacío -->
+    <div class="carrito-vacio" *ngIf="items.length === 0">
+      <div class="vacio-icon">🛒</div>
+      <h2>Tu carrito está vacío</h2>
+      <p>¡Agrega productos para comenzar tu compra!</p>
+      <button class="btn-ir-productos" (click)="volverAProductos()">
+        Ver Productos
+      </button>
+    </div>
+
+    <!-- Lista de productos -->
+    <div class="items-container" *ngIf="items.length > 0">
+      <div class="item-card" *ngFor="let item of items">
+        <div class="item-info">
+          <h3 class="item-nombre">{{ item.nombre }}</h3>
+          <p class="item-precio-unitario">
+            Precio unitario: {{ formatearPrecio(item.precioUnitario) }}
+          </p>
+        </div>
+
+        <div class="item-actions">
+          <div class="cantidad-control">
+            <button 
+              class="btn-cantidad" 
+              (click)="decrementarCantidad(item)"
+              [disabled]="item.cantidad <= 1"
+            >
+              -
+            </button>
+            <span class="cantidad-display">{{ item.cantidad }}</span>
+            <button 
+              class="btn-cantidad" 
+              (click)="incrementarCantidad(item)"
+            >
+              +
+            </button>
+          </div>
+
+          <div class="item-subtotal">
+            <span class="subtotal-label">Subtotal:</span>
+            <span class="subtotal-valor">{{ formatearPrecio(item.subtotal) }}</span>
+          </div>
+
+          <button 
+            class="btn-eliminar" 
+            (click)="eliminarItem(item)"
+            title="Eliminar producto"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen total -->
+    <div class="carrito-resumen" *ngIf="items.length > 0">
+        <div class="resumen-content">
+            <div class="resumen-linea">
+                <span class="resumen-label">Total de productos:</span>
+                <span class="resumen-valor">{{ items.length }}</span>
+        </div>
+        <div class="resumen-linea">
+            <span class="resumen-label">Cantidad de items:</span>
+            <span class="resumen-valor">
+            {{ getCantidadTotal() }}
+          </span>
+        </div>
+        <div class="resumen-linea total">
+          <span class="resumen-label">Total a pagar:</span>
+          <span class="resumen-valor">{{ formatearPrecio(total) }}</span>
+        </div>
+    </div>
+</div>
+<div class="botones_container">
+    <button 
+    class="btn-vaciar" 
+    (click)="vaciarCarrito()"
+    [disabled]="items.length === 0"
+  >
+    🗑️ Vaciar Carrito
+  </button>
+  <button 
+    class="btn-comprar" 
+    (click)="irAPago()"
+    [disabled]="items.length === 0"
+  >
+    💳 Comprar 
+  </button>
+</div>
+</div>
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando carrito...</p>
+  </div>
+</div>

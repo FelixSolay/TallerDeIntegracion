@@ -211,7 +211,7 @@
 }
 
 .btn-blue-main:hover:not(:disabled) {
-  background-color: #070070;
+  background-color: #09008C;
 }
 
 .btn-blue-main:disabled {
@@ -255,7 +255,7 @@
 }
 
 .btn-blue-secondary:hover {
-  background-color: #070070;
+  background-color: #09008C;
 }
 
 /* Estilo para el botón de eliminar dentro del form (clase usada en template: btn-danger) */
@@ -327,7 +327,7 @@
 }
 
 .popup-confirmation {
-  background: white;
+  background: #E4EFE9;
   border-radius: 15px;
   padding: 30px;
   max-width: 400px;
@@ -383,5 +383,5 @@
 }
 
 .btn-blue-secondary:hover {
-  background-color: #070070;
+  background-color: #09008C;
 }

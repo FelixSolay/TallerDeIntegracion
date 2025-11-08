@@ -176,12 +176,24 @@
 }
 
 .cart-icon-small {
-    margin-right: 6px;
     font-size: 18px;
 }
 
+.saldo-label {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: 4px;
+}
+
 .saldo-amount {
-    color: #09008C; /* Saldo amount in site green */
+    color: #09008C;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.saldo-favor {
+    color: #47B20E;
     font-weight: 700;
     font-size: 16px;
 }
@@ -228,7 +240,7 @@
 }
 
 .btn-blue-main:hover:not(:disabled) {
-    background-color: #070070;
+    background-color: #09008C;
 }
 
 .btn-blue-main:disabled {
@@ -279,7 +291,7 @@
 }
 
 .btn-blue-secondary:hover {
-    background-color: #070070;
+    background-color: #09008C;
 }
 
 /* Responsive design */
@@ -322,7 +334,7 @@
 }
 
 .popup-confirmation {
-    background: white;
+    background: #E4EFE9;
     border-radius: 15px;
     padding: 30px;
     max-width: 400px;
@@ -378,5 +390,5 @@
 }
 
 .btn-blue-secondary:hover {
-    background-color: #070070;
+    background-color: #09008C;
 }

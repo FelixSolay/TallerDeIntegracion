@@ -14,7 +14,7 @@
   max-width: 450px;
   margin: 100px auto 40px;
   padding: 25px;
-  background-color: white;
+  background-color: #E4EFE9;
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
@@ -33,7 +33,7 @@
 }
 
 .categoria-form {
-  background-color: white;
+  background-color: #E4EFE9;
   padding: 0;
   border-radius: 0;
 }
@@ -187,7 +187,7 @@ textarea.form-control {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #070070;
+  background-color: #09008C;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(9, 0, 140, 0.3);
 }

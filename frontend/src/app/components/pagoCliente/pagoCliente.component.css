@@ -1,0 +1,283 @@
+.pago-container {
+  max-width: 900px;
+  margin: 100px auto 40px auto;
+  padding: 2rem;
+  background: #f7f9fb;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pago-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pago-header h1 {
+  font-size: 2rem;
+  color: #1f3541;
+  margin: 0;
+}
+
+.btn-volver {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  border: 2px solid #1f3541;
+  border-radius: 8px;
+  color: #1f3541;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-volver:hover {
+  background-color: #1f3541;
+  color: #ffffff;
+}
+
+.resumen-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  background: #E4EFE9;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.saldo-info,
+.total-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.saldo-label,
+.total-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.saldo-valor {
+  font-size: 1.2rem;
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.total-valor {
+  font-size: 1.4rem;
+  color: #09008C;
+  font-weight: 800;
+}
+
+.items-card {
+  background: #E4EFE9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+}
+
+.items-card h2 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.direccion-card {
+  background: #E4EFE9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.direccion-card h2 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.direccion-help {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.direccion-textarea {
+  width: 100%;
+  border: 1px solid #cbd5f5;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 90px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.direccion-textarea:focus {
+  outline: none;
+  border-color: #09008C;
+  box-shadow: 0 0 0 3px rgba(9, 0, 140, 0.2);
+}
+
+.direccion-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.item-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.item-info p {
+  margin: 0.3rem 0 0 0;
+  color: #6b7280;
+}
+
+.item-precio span {
+  font-weight: 700;
+  color: #09008C;
+}
+
+.metodo-pago {
+  background: #E4EFE9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.metodo-pago h2 {
+  margin: 0 0 0.5rem 0;
+  color: #1f2937;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.radio-option input {
+  width: 18px;
+  height: 18px;
+}
+
+.alerta {
+  background: #fef3c7;
+  color: #b45309;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #f59e0b;
+}
+
+.mensajes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mensaje-exito {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #22c55e;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.mensaje-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #f87171;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.btn-pagar {
+  padding: 1rem;
+  border: none;
+  border-radius: 10px;
+  background: #09008C;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-pagar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(9, 0, 140, 0.3);
+}
+
+.btn-pagar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading,
+.carrito-vacio {
+  max-width: 600px;
+  margin: 120px auto;
+  text-align: center;
+  color: #4b5563;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #09008C;
+  border-radius: 50%;
+  margin: 0 auto 1rem auto;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .pago-container {
+    margin: 80px 1rem 30px 1rem;
+    padding: 1.5rem;
+  }
+
+  .pago-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .resumen-card {
+    grid-template-columns: 1fr;
+  }
+
+  .items-card {
+    padding: 1rem;
+  }
+}
+

@@ -4,6 +4,8 @@ import { CommonModule, NgIf } from '@angular/common';
 import { filter } from 'rxjs';
 import { ButtonComponent } from '../button/button.component';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
+import { ProductoService } from '../../services/producto.service';
+import { GlobalService } from '../../services/global.service';
 
 @Component({
   selector: 'app-navbar',
@@ -22,6 +24,7 @@ export class NavbarComponent implements OnInit {
   showUserMenu: boolean = false;
   showCategoriesMenu: boolean = false;
   categorias: any[] = [];
+  cartTotal: number = 0;
   private categoryMenuTimeout: any;
   
   comprobarRuta() {
@@ -36,33 +39,57 @@ export class NavbarComponent implements OnInit {
   conseguirDatos() {
     this.type = sessionStorage.getItem("type")??'';
     this.name = sessionStorage.getItem("username")??'Usuario';
-    const dni = {
-      dni: sessionStorage.getItem("dni")
-    };
-    if(dni.dni != null) {
-      (async () => {    
-        try {
-          const response = await fetch('/getImage', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dni)
-          });
+    const dni = sessionStorage.getItem("dni");
+
+    // Obtener imagen si hay dni
+    // NOTA: endpoint /getImage no existe actualmente, comentado temporalmente
+    // if(dni != null) {
+    //   (async () => {    
+    //     try {
+    //       const response = await fetch('/getImage', {
+    //         method: 'POST',
+    //         headers: {
+    //           'Content-Type': 'application/json'
+    //         },
+    //         body: JSON.stringify({ dni })
+    //       });
       
-          const result = await response.json();
-          this.image = result.base64;
-        } catch (error) {
-          console.error('Error', error);
+    //       const result = await response.json();
+    //       this.image = result.base64;
+    //     } catch (error) {
+    //       console.error('Error', error);
+    //     }
+    //   })();
+    // }
+
+    // Obtener carrito para sincronizar total
+    if (dni != null && this.type === 'cliente') {
+      this.productoService.getCart(dni).subscribe({
+        next: (resp) => {
+          const total = resp?.carrito?.total ?? 0;
+          this.cartTotal = total;
+          this.globalService.setCartTotal(total);
+        },
+        error: (err) => {
+          console.error('Error obteniendo carrito en navbar', err);
+          // Si el carrito no existe (404), inicializarlo en 0
+          this.cartTotal = 0;
+          this.globalService.setCartTotal(0);
         }
-      })();
+      });
     }
   }
 
-  constructor(private router: Router, private categoriaService: CategoriaService) {};
+  constructor(private router: Router, private categoriaService: CategoriaService, private productoService: ProductoService, private globalService: GlobalService) {};
 
   ngOnInit() {
     this.checkScreenSize();
+
+    // Suscribirse a cambios globales del total del carrito
+    this.globalService.cartTotal$.subscribe(total => {
+      this.cartTotal = total ?? 0;
+    });
+
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -150,6 +177,23 @@ export class NavbarComponent implements OnInit {
     category.hover = true;
   }
 
+  navegarAProductos(categoriaId: string): void {
+    this.closeCategoriesMenu();
+    this.router.navigate(['/productos'], { 
+      queryParams: { categoria: categoriaId }
+    });
+  }
+
+  goToPedidosEnCurso(): void {
+    this.closeUserMenu();
+    this.router.navigate(['/pedidos-en-curso']);
+  }
+
+  goToHistorialPedidos(): void {
+    this.closeUserMenu();
+    this.router.navigate(['/historial-pedidos']);
+  }
+
   goToProfile(): void {
     this.closeUserMenu();
     if (this.type === 'Administrador') {
@@ -180,4 +224,13 @@ export class NavbarComponent implements OnInit {
       this.closeCategoriesMenu();
     }
   }
+
+  formatPrice(value: number): string {
+    try {
+      return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value);
+    } catch (e) {
+      return value?.toString() ?? '0';
+    }
+  }
 }
+

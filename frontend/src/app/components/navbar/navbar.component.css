@@ -119,7 +119,7 @@ li a:hover {
   position: absolute;
   top: 100%;
   right: 0;
-  background-color: white;
+  background-color: #D0E8C3;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 180px;
@@ -176,7 +176,7 @@ li a:hover {
 }
 
 .categories-dropdown {
-  background-color: white;
+  background-color: #D0E8C3;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -218,7 +218,7 @@ li a:hover {
 
 .category-principal:hover,
 .category-principal.active {
-  background-color: white;
+  background-color: #D0E8C3;
   color: #09008C;
 }
 
@@ -299,8 +299,16 @@ li a:hover {
   color: #09008C;
   font-size: 14px;
   margin-bottom: 5px;
-  padding-bottom: 5px;
+  padding: 8px 0;
   border-bottom: 2px solid #47B20E;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subcategory-title:hover {
+  color: #47B20E;
+  padding-left: 5px;
+  border-bottom-width: 3px;
 }
 
 .subcategory-group ul {
@@ -317,12 +325,15 @@ li a:hover {
   font-size: 13px;
   padding: 5px 0;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
+  border-radius: 4px;
 }
 
 .subcategory-group ul li:hover {
   color: #47B20E;
-  padding-left: 5px;
+  background-color: #f8f9fa;
+  padding-left: 8px;
+  font-weight: 500;
 }
 
 .dropdown-item span {
@@ -351,6 +362,77 @@ a {
 .userLogo:hover, p:hover + .userLogo, .activeProfile {
   border: 2px solid #e314ce;
   box-shadow: 0px 0px 20px 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Botón de carrito junto al nombre */
+.user-menu-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-cart-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.2);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.navbar-cart-button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.navbar-cart-button .cart-icon {
+  font-size: 1.2rem;
+}
+
+.navbar-cart-button .cart-badge {
+  background-color: #09008C;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Estilos para el carrito en navbar */
+.carrito-nav-item {
+  position: relative;
+}
+
+.carrito-nav-item a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.cart-icon {
+  font-size: 1.3rem;
+}
+
+.cart-badge {
+  background-color: #ff4757;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: center;
+}
+
+.carrito-nav-item.active a,
+.carrito-nav-item:hover a {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
 }
 
 /* Para pantallas de móviles (máximo 600px de ancho) */

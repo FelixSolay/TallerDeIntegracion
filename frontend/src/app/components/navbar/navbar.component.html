@@ -33,9 +33,11 @@
                         <div *ngFor="let cat0 of categorias" class="subcategories-panel" [class.show]="cat0.hover">
                             <div class="subcategories-columns">
                                 <div *ngFor="let cat1 of cat0.subcategorias" class="subcategory-group">
-                                    <div class="subcategory-title">{{cat1.nombre}}</div>
+                                    <div class="subcategory-title" (click)="navegarAProductos(cat1._id)">
+                                        {{cat1.nombre}}
+                                    </div>
                                     <ul *ngIf="cat1.subcategorias && cat1.subcategorias.length > 0">
-                                        <li *ngFor="let cat2 of cat1.subcategorias">
+                                        <li *ngFor="let cat2 of cat1.subcategorias" (click)="navegarAProductos(cat2._id)">
                                             {{cat2.nombre}}
                                         </li>
                                     </ul>
@@ -71,11 +73,24 @@
         </li>
     </ul>
     <div class="user-menu-container">
+        <!-- Botón de carrito a la izquierda del nombre (solo clientes) -->
+        <a *ngIf="type === 'cliente'" routerLink="/carrito" class="navbar-cart-button" title="Ir al carrito">
+            <span class="cart-badge" *ngIf="cartTotal > 0">{{ formatPrice(cartTotal) }}</span>
+            <span class="cart-icon">🛒</span>
+        </a>
         <div class="user" (click)="toggleUserMenu()">
             <p *ngIf="!isMobile">{{name}}</p>
             <span class="dropdown-arrow">▼</span>
         </div>
         <div class="user-dropdown" *ngIf="showUserMenu">
+            <ng-container *ngIf="type === 'cliente'">
+                <div class="dropdown-item" (click)="goToPedidosEnCurso()">
+                    <span>Pedidos en curso</span>
+                </div>
+                <div class="dropdown-item" (click)="goToHistorialPedidos()">
+                    <span>Historial de pedidos</span>
+                </div>
+            </ng-container>
             <div class="dropdown-item" (click)="goToProfile()">
                 <span>Modificar perfil</span>
             </div>
@@ -98,24 +113,24 @@
             </a>
         </li>
         <li *ngIf="!isMobile">|</li>
-        <li [class.active]="isActive('productosAdministrador')" class="disabled-link">
-            <a>
+        <li [class.active]="isActive('admin/productosAdministrador')" >
+            <a routerLink="/admin/productosAdministrador">
                 <span *ngIf="!isMobile">Productos</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/expensas azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/expensas blanco.png">
             </a>
         </li>
         <li *ngIf="!isMobile">|</li>
-        <li [class.active]="isActive('promocionesAdministrador')" class="disabled-link">
-            <a>
+        <li [class.active]="isActive('promocionesAdministrador')">
+            <a routerLink="/promocionesAdministrador">
                 <span *ngIf="!isMobile">Promociones</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/contactos azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/contactos blanco.png">
             </a>
         </li>
         <li *ngIf="!isMobile">|</li>
-        <li [class.active]="isActive('ventasAdministrador')" class="disabled-link">
-            <a>
+        <li [class.active]="isActive('ventasAdministrador')">
+            <a routerLink="/ventasAdministrador">
                 <span *ngIf="!isMobile">Ventas</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/pagar azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/pagar blanco.png">

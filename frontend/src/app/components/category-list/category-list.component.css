@@ -14,7 +14,7 @@
   max-width: 900px;
   margin: 100px auto 40px;
   padding: 30px;
-  background-color: white;
+  background-color: #E4EFE9;
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
@@ -48,7 +48,7 @@
 }
 
 .btn-primary:hover {
-  background-color: #070070;
+  background-color: #09008C;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(9, 0, 140, 0.3);
 }
@@ -65,7 +65,7 @@
 }
 
 .categorias-tree {
-  background-color: white;
+  background-color: #E4EFE9;
   border-radius: 10px;
   padding: 15px;
 }
@@ -78,7 +78,7 @@
   display: flex;
   align-items: center;
   padding: 12px;
-  background-color: #fff;
+  background-color: #E4EFE9;
   border: 1px solid #D0E8C3;
   border-radius: 8px;
   transition: all 0.2s;
@@ -211,7 +211,7 @@
 }
 
 .popup-confirmation {
-  background-color: white;
+  background-color: #E4EFE9;
   padding: 30px;
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -274,7 +274,7 @@
 }
 
 .btn-blue-secondary:hover {
-  background-color: #070070;
+  background-color: #09008C;
   transform: translateY(-1px);
 }
 

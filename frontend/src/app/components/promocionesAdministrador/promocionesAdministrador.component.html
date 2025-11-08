@@ -1,0 +1,105 @@
+<div class="promo-container">
+  <div class="promo-header">
+    <h1>Promociones</h1>
+    <p class="subtitle">Crear, modificar y eliminar promociones sobre productos</p>
+  </div>
+
+  <div class="panel">
+    <h2>Nueva promoción</h2>
+    <div class="form-grid">
+      <label>
+        Producto
+        <select [(ngModel)]="form.productId">
+          <option value="" disabled>Selecciona un producto</option>
+          <option *ngFor="let p of productos" [value]="p._id">{{ p.nombre }}</option>
+        </select>
+      </label>
+      <label class="label-tipo">
+        Tipo
+  <select [(ngModel)]="form.tipo" class="tipo-select tipo-select--compact" title="Tipo de promoción">
+          <option value="porcentaje" title="Porcentaje">%</option>
+          <option value="monto" title="Monto">$</option>
+        </select>
+      </label>
+      <label>
+        Valor
+        <input type="number" [(ngModel)]="form.valor" min="0" step="0.01" />
+      </label>
+      <label>
+        Inicio
+        <input type="date" [(ngModel)]="form.fechaInicio" />
+      </label>
+      <label>
+        Fin
+        <input type="date" [(ngModel)]="form.fechaFin" />
+      </label>
+      <div class="acciones">
+        <button class="btn" (click)="crearPromocion()">Crear promoción</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Listado de promociones</h2>
+    <div *ngIf="cargando" class="loading">Cargando...</div>
+    <div *ngIf="!cargando && error" class="error">{{ error }}</div>
+
+    <table class="tabla" *ngIf="!cargando && !error">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Tipo</th>
+          <th>Valor</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>Precio original</th>
+          <th>Precio promo</th>
+          <th>Activo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let pr of promociones">
+          <td>{{ nombreProducto(pr.productId) }}</td>
+          <td>
+            <select
+              [(ngModel)]="pr.tipo"
+              class="tipo-select"
+              [attr.aria-label]="'Tipo de promoción para ' + nombreProducto(pr.productId)"
+              title="Tipo de promoción"
+            >
+              <option value="porcentaje" title="Porcentaje">%</option>
+              <option value="monto" title="Monto">$</option>
+            </select>
+          </td>
+          <td>
+            <input type="number" [(ngModel)]="pr.valor" min="0" step="0.01" />
+          </td>
+          <td>
+            <input
+              type="date"
+              [ngModel]="toDateInput(pr.fechaInicio)"
+              (ngModelChange)="onFechaChange(pr, 'fechaInicio', $event)"
+            />
+          </td>
+          <td>
+            <input
+              type="date"
+              [ngModel]="toDateInput(pr.fechaFin)"
+              (ngModelChange)="onFechaChange(pr, 'fechaFin', $event)"
+            />
+          </td>
+          <td class="right">{{ pr.precioOriginal | currency:'ARS' }}</td>
+          <td class="right">{{ pr.precioPromocional | currency:'ARS' }}</td>
+          <td>
+            <input type="checkbox" [(ngModel)]="pr.activo" />
+          </td>
+          <td class="acciones">
+            <button class="btn" (click)="guardarCambios(pr)">Guardar</button>
+            <button class="btn danger" (click)="eliminar(pr)">Eliminar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

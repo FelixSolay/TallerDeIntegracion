@@ -1,0 +1,85 @@
+<div class="promos-container">
+  <div class="promos-header">
+    <h1>Promociones especiales</h1>
+    <p class="subtitle">Aprovechá los descuentos vigentes y llevá tus productos favoritos al mejor precio.</p>
+  </div>
+
+  <div *ngIf="cargando" class="estado estado-loading">
+    <p>Cargando promociones...</p>
+  </div>
+
+  <div *ngIf="!cargando && error" class="estado estado-error">
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="!cargando && !error && promociones.length === 0" class="estado estado-empty">
+    <p>No hay promociones activas en este momento. Volvé pronto para descubrir nuevas ofertas.</p>
+  </div>
+
+  <div *ngIf="!cargando && !error && promociones.length > 0" class="productos-grid">
+    <div class="producto-card" *ngFor="let item of promociones">
+      <div class="producto-imagen-container">
+        <img
+          *ngIf="item.producto.imagen"
+          [src]="item.producto.imagen"
+          [alt]="item.producto.nombre"
+          class="producto-imagen"
+        />
+        <div *ngIf="!item.producto.imagen" class="producto-sin-imagen">
+          <span>🎉</span>
+        </div>
+      </div>
+
+      <div class="producto-info">
+        <h3 class="producto-nombre">{{ item.producto.nombre }}</h3>
+        <p *ngIf="item.producto.descripcion" class="producto-descripcion">
+          {{ item.producto.descripcion }}
+        </p>
+        <div class="producto-precio-container con-promocion">
+          <div class="precio-wrapper">
+            <span class="producto-precio precio-promocional">{{ formatearPrecio(item.precioVigente) }}</span>
+            <span class="producto-precio-original">{{ formatearPrecio(obtenerPrecioOriginal(item)) }}</span>
+          </div>
+          <span class="producto-badge-promocion">{{ formatearEtiquetaPromocion(item) }}</span>
+          <span *ngIf="item.producto.stock !== undefined" class="producto-stock">
+            Stock: {{ item.producto.stock }}
+          </span>
+        </div>
+      </div>
+
+      <div class="producto-acciones">
+        <div class="cantidad-selector">
+          <button class="btn-cantidad" (click)="decrementarCantidad(item)" [disabled]="item.cantidad <= 1">−</button>
+          <span class="cantidad-display">{{ item.cantidad }}</span>
+          <button
+            class="btn-cantidad"
+            (click)="incrementarCantidad(item)"
+            [disabled]="item.producto.stock !== undefined && item.cantidad >= item.producto.stock"
+          >
+            +
+          </button>
+        </div>
+        <div class="botones-compra">
+          <button
+            class="btn-agregar-carrito"
+            (click)="agregarAlCarrito(item)"
+            [disabled]="item.producto.stock === 0"
+          >
+            🛒 Llevar promoción
+          </button>
+          <button
+            type="button"
+            class="btn-favorito"
+            [class.active]="item.esFavorito"
+            [attr.aria-pressed]="item.esFavorito"
+            [disabled]="!item.producto._id"
+            (click)="toggleFavorito(item)"
+            [title]="item.esFavorito ? 'Quitar de favoritos' : 'Agregar a favoritos'"
+          >
+            <span>{{ item.esFavorito ? '❤️' : '🤍' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

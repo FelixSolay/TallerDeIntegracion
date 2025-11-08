@@ -1,0 +1,69 @@
+<div class="favoritos-container">
+    <div class="favoritos-header">
+        <h1>Mis favoritos</h1>
+        <p class="subtitle">Guarda tus productos preferidos y accede rápido cuando quieras comprarlos.</p>
+    </div>
+
+    <div *ngIf="cargando" class="loading">
+        <p>Cargando tus favoritos...</p>
+    </div>
+
+    <div *ngIf="!cargando && errorMensaje" class="error-state">
+        <p>{{ errorMensaje }}</p>
+        <a routerLink="/productos" class="btn-secondary">Explorar productos</a>
+    </div>
+
+    <div *ngIf="!cargando && !errorMensaje && favoritos.length === 0" class="empty-state">
+        <p>No tienes productos marcados como favoritos todavía.</p>
+        <a routerLink="/productos" class="btn-primary">Descubrir productos</a>
+    </div>
+
+    <div *ngIf="!cargando && favoritos.length > 0" class="favoritos-grid">
+        <div *ngFor="let producto of favoritos" class="favorito-card">
+            <div class="favorito-imagen-container">
+                <img *ngIf="producto.imagen" [src]="producto.imagen" [alt]="producto.nombre" class="favorito-imagen">
+                <div *ngIf="!producto.imagen" class="favorito-sin-imagen">
+                    <span>📦</span>
+                </div>
+                <div *ngIf="producto.stock !== undefined && producto.stock <= 5" class="badge-stock-bajo">
+                    {{ producto.stock === 0 ? 'Sin stock' : 'Últimas unidades' }}
+                </div>
+            </div>
+
+            <div class="favorito-info">
+                <h3 class="favorito-nombre">{{ producto.nombre }}</h3>
+                <p *ngIf="producto.descripcion" class="favorito-descripcion">{{ producto.descripcion }}</p>
+                <div class="favorito-precio-container" [class.con-promocion]="producto.promocion">
+                    <div class="precio-wrapper">
+                        <span class="favorito-precio" [class.precio-promocional]="producto.promocion">
+                            {{ formatearPrecio(producto.precioVigente) }}
+                        </span>
+                        <span *ngIf="producto.promocion" class="favorito-precio-original">
+                            {{ formatearPrecio(obtenerPrecioOriginal(producto)) }}
+                        </span>
+                    </div>
+                    <span *ngIf="producto.promocion" class="producto-badge-promocion">
+                        {{ formatearEtiquetaPromocion(producto) }}
+                    </span>
+                    <span *ngIf="producto.stock !== undefined" class="favorito-stock">Stock: {{ producto.stock }}</span>
+                </div>
+            </div>
+
+            <div class="favorito-acciones">
+                <div class="cantidad-selector">
+                    <button class="btn-cantidad" (click)="decrementarCantidad(producto)" [disabled]="producto.cantidad <= 1">−</button>
+                    <span class="cantidad-display">{{ producto.cantidad }}</span>
+                    <button class="btn-cantidad" (click)="incrementarCantidad(producto)" [disabled]="producto.stock !== undefined && producto.cantidad >= producto.stock">+</button>
+                </div>
+                <div class="botones-compra">
+                    <button class="btn-agregar-carrito" (click)="agregarAlCarrito(producto)" [disabled]="producto.stock === 0">
+                        🛒 Agregar al carrito
+                    </button>
+                    <button class="btn-remover" type="button" (click)="removerFavorito(producto)" [disabled]="!producto._id" title="Quitar de favoritos">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
