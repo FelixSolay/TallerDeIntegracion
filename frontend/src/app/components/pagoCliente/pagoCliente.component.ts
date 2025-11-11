@@ -166,7 +166,8 @@ export class PagoClienteComponent implements OnInit {
           
           this.codigoQR = qrCode;
           this.preferenceId = response.preferenceId || '';
-          this.linkPago = response.initPoint || response.checkoutUrl || '';
+          // this.linkPago = response.initPoint || response.checkoutUrl || '';
+          this.linkPago = response.sandboxUrl || response.checkoutUrl || response.initPoint || '';
           
           console.log('📊 Valores asignados:', {
             codigoQR_length: this.codigoQR.length,

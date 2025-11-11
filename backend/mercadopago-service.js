@@ -186,12 +186,15 @@ async function generateQRCode(qrData) {
             qrCodeBase64 = null;
         }
 
+        // Asegurar que siempre haya una URL sandbox (si no viene de MP, construimos una)
+        const sandboxUrl = preference.sandbox_init_point || `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${preference.id}`;
+        
         return {
             success: true,
             preferenceId: preference.id,
             qrCode: qrCodeBase64, // ✅ QR CODE COMO BASE64
             checkoutUrl: preference.init_point,
-            sandboxUrl: preference.sandbox_init_point,
+            sandboxUrl: sandboxUrl, // ✅ URL SANDBOX FORZADA
             totalAmount: qrItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0),
             preference: preference
         };
