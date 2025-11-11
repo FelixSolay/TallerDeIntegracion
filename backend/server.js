@@ -1,3 +1,6 @@
+// ✅ CARGAR VARIABLES DE ENTORNO AL INICIO
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -12,6 +15,7 @@ const upload = multer({
 const fs = require('fs');
 const crypto = require('crypto');
 const { type } = require('os');
+const mercadopagoService = require('./mercadopago-service');
 
 
 const app = express();
@@ -93,7 +97,14 @@ const orderSchema = new mongoose.Schema({
     estado: { type: String, enum: ['pendiente', 'entregado', 'cancelado'], default: 'pendiente' },
     fechaEntrega: { type: Date, default: null },
     metodoPago: { type: String, default: 'carrito' },
-    stockAjustado: { type: Boolean, default: false }
+    stockAjustado: { type: Boolean, default: false },
+    // Campos para integración Mercado Pago
+    paymentId: { type: String, default: null },
+    preferenceId: { type: String, default: null },
+    paymentStatus: { type: String, enum: ['pending', 'approved', 'rejected', 'cancelled', 'refunded'], default: null },
+    paymentMethod: { type: String, default: null }, // visa, mastercard, efectivo, etc
+    paymentDate: { type: Date, default: null },
+    externalReference: { type: String, default: null }
 }, { timestamps: { createdAt: 'creadoEl', updatedAt: 'actualizadoEl' } });
 
 const Order = mongoose.model('orders', orderSchema);
@@ -2640,6 +2651,343 @@ app.get('/api/reports/sales-by-period', async (req, res) => {
     } catch (error) {
         console.error('Error generando reporte por periodo:', error);
         res.status(500).json({ success: false, reason: 'serverError' });
+    }
+});
+
+// ============================================
+// INTEGRACIÓN MERCADO PAGO - PAGOS CON QR
+// ============================================
+
+/**
+ * Crear preferencia de pago para un pedido
+ * POST /api/pagos/crear-preferencia
+ * Body: { orderId, dni, items, ... }
+ */
+app.post('/api/pagos/crear-preferencia', async (req, res) => {
+    try {
+        const { orderId, dni, items, total, notificationUrl, backUrls } = req.body;
+
+        if (!dni || dni.trim() === '') {
+            return res.status(400).json({ success: false, error: 'dniRequerido' });
+        }
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ success: false, error: 'itemsRequeridos' });
+        }
+
+        if (total === undefined || total <= 0) {
+            return res.status(400).json({ success: false, error: 'totalInvalido' });
+        }
+
+        // Obtener datos del cliente
+        const customer = await Customer.findOne({ dni: dni.trim() });
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'clienteNoEncontrado' });
+        }
+
+        // Preparar datos para Mercado Pago
+        const paymentData = {
+            items: items.map(item => ({
+                productId: item.productId,
+                nombre: item.nombre,
+                descripcion: item.nombre,
+                precioUnitario: item.precioUnitario,
+                cantidad: item.cantidad,
+                image: item.image || ''
+            })),
+            payer: {
+                nombre: customer.nombre,
+                apellido: customer.apellido,
+                dni: customer.dni,
+                mail: customer.mail,
+                telefono: customer.telefono,
+                domicilio: customer.domicilio,
+                codigoPostal: customer.codigoPostal
+            },
+            notificationUrl: notificationUrl,
+            backUrls: backUrls || {
+                success: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/pago-exitoso`,
+                failure: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/pago-fallido`,
+                pending: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/pago-pendiente`
+            },
+            externalReference: orderId || `ORDER-${Date.now()}`
+        };
+
+        const preference = await mercadopagoService.createPaymentPreference(paymentData);
+
+        return res.status(201).json({
+            success: true,
+            preferenceId: preference.preferenceId,
+            checkoutUrl: preference.checkoutUrl,
+            sandboxUrl: preference.sandboxUrl,
+            qrCode: preference.qrCode,
+            total: total
+        });
+
+    } catch (error) {
+        console.error('Error al crear preferencia de pago:', error);
+        res.status(500).json({ success: false, error: error.error || error.message || 'serverError' });
+    }
+});
+
+/**
+ * Generar código QR para pago en punto de venta
+ * POST /api/pagos/generar-qr
+ * Body: { cantidad, descripcion, items, reference, ... }
+ */
+app.post('/api/pagos/generar-qr', async (req, res) => {
+    try {
+        const { cantidad, descripcion, items, reference, title } = req.body;
+
+        if (!cantidad && (!items || items.length === 0)) {
+            return res.status(400).json({ success: false, error: 'cantidadOItemsRequeridos' });
+        }
+
+        const qrData = {
+            title: title || descripcion || 'Compra en tienda',
+            description: descripcion || 'Pago en punto de venta',
+            amount: cantidad,
+            externalReference: reference || `QR-${Date.now()}`,
+            items: items || []
+        };
+
+        const qrResult = await mercadopagoService.generateQRCode(qrData);
+
+        // Si se proporcionó clienteDni, crear un pedido pendiente asociado a esta preference
+        try {
+            const clienteDni = req.body.clienteDni || req.body.dni || null;
+            if (clienteDni) {
+                const customer = await Customer.findOne({ dni: clienteDni.toString() });
+                if (customer) {
+                    // Mapear items para el pedido (si vienen desde el frontend)
+                    const itemsForOrder = (req.body.items && Array.isArray(req.body.items) && req.body.items.length > 0)
+                        ? req.body.items.map(it => ({
+                            productId: it.productId || null,
+                            nombre: it.nombre || it.title || 'Producto',
+                            precioUnitario: Number(it.precioUnitario || it.unit_price || it.price || 0),
+                            cantidad: Number(it.cantidad || it.quantity || 1),
+                            subtotal: Number((Number(it.precioUnitario || it.unit_price || it.price || 0) * Number(it.cantidad || it.quantity || 1)).toFixed(2))
+                        }))
+                        : [];
+
+                    const totalOrder = itemsForOrder.reduce((s, it) => s + (it.subtotal || 0), 0) || qrResult.totalAmount || Number(req.body.cantidad || 0);
+
+                    const newOrderPayload = {
+                        customer: customer._id,
+                        dni: customer.dni,
+                        nombre: `${customer.nombre || ''} ${customer.apellido || ''}`.trim(),
+                        direccionEntrega: req.body.direccionEntrega || customer.domicilio || '',
+                        items: itemsForOrder,
+                        total: Number(totalOrder),
+                        estado: 'pendiente',
+                        metodoPago: 'tarjeta',
+                        preferenceId: qrResult.preferenceId || null,
+                        externalReference: qrResult.preferenceId || qrData.externalReference || null
+                    };
+
+                    try {
+                        const createdOrder = await Order.create(newOrderPayload);
+                        console.log('✅ Pedido creado para preferenceId:', qrResult.preferenceId, 'orderId:', createdOrder._id);
+                    } catch (orderCreateErr) {
+                        console.warn('No se pudo crear el pedido automáticamente:', orderCreateErr.message || orderCreateErr);
+                    }
+                }
+            }
+        } catch (orderLinkErr) {
+            console.error('Error al intentar crear pedido asociado al QR:', orderLinkErr);
+        }
+
+        return res.status(201).json({
+            success: true,
+            preferenceId: qrResult.preferenceId,
+            qrCode: qrResult.qrCode,
+            checkoutUrl: qrResult.checkoutUrl,
+            sandboxUrl: qrResult.sandboxUrl,
+            totalAmount: qrResult.totalAmount
+        });
+
+    } catch (error) {
+        console.error('Error al generar QR:', error);
+        res.status(500).json({ success: false, error: error.error || error.message || 'serverError' });
+    }
+});
+
+/**
+ * Obtener información de una preferencia de pago
+ * GET /api/pagos/preferencia/:preferenceId
+ */
+app.get('/api/pagos/preferencia/:preferenceId', async (req, res) => {
+    try {
+        const { preferenceId } = req.params;
+
+        if (!preferenceId || preferenceId.trim() === '') {
+            return res.status(400).json({ success: false, error: 'preferenceIdRequerido' });
+        }
+
+        const preferenceInfo = await mercadopagoService.getPreference(preferenceId);
+
+        return res.json({
+            success: true,
+            preference: preferenceInfo.preference
+        });
+
+    } catch (error) {
+        console.error('Error al obtener preferencia:', error);
+        res.status(500).json({ success: false, error: error.error || error.message || 'serverError' });
+    }
+});
+
+/**
+ * Webhook para notificaciones de Mercado Pago
+ * POST /api/pagos/webhook
+ * Mercado Pago enviará notificaciones con { type, data: { id } }
+ */
+app.post('/api/pagos/webhook', async (req, res) => {
+    try {
+        const body = req.body || {};
+        console.log('📩 Webhook recibido de Mercado Pago:', JSON.stringify(body).slice(0, 1000));
+
+        // Extraer id de payment si viene en data
+        let paymentId = null;
+        if (body.type === 'payment' && body.data && body.data.id) {
+            paymentId = body.data.id;
+        } else if (body.data && body.data.id) {
+            paymentId = body.data.id;
+        } else if (body.id) {
+            paymentId = body.id;
+        }
+
+        if (!paymentId) {
+            console.warn('Webhook sin id de pago');
+            return res.status(400).json({ success: false, error: 'paymentIdMissing' });
+        }
+
+        // Consultar detalle del pago en Mercado Pago
+        const paymentResp = await mercadopagoService.getPayment(paymentId);
+        if (!paymentResp || !paymentResp.success) {
+            console.error('No se pudo obtener info del pago:', paymentResp && paymentResp.error);
+            return res.status(500).json({ success: false, error: 'paymentFetchFailed' });
+        }
+
+        const payment = paymentResp.payment;
+        // Buscar preferenceId en el objeto de pago
+        const prefId = payment.preference_id || (payment.order && payment.order.preference_id) || payment.external_reference || null;
+
+        // Encontrar el pedido por preferenceId o externalReference
+        let order = null;
+        if (prefId) {
+            order = await Order.findOne({ preferenceId: prefId }) || await Order.findOne({ externalReference: prefId });
+        }
+
+        if (!order) {
+            // Intentar buscar por external_reference en el payment
+            if (payment.external_reference) {
+                order = await Order.findOne({ externalReference: payment.external_reference });
+            }
+        }
+
+        if (!order) {
+            console.warn('No se encontró pedido asociado a preference/external ref:', prefId, payment.external_reference);
+            return res.status(200).json({ success: true, info: 'no_order_found' });
+        }
+
+        // Actualizar datos de pago en el pedido
+        order.paymentId = payment.id || paymentId;
+        order.paymentStatus = payment.status || null;
+        order.paymentMethod = payment.payment_method_id || payment.payment_type || order.paymentMethod;
+        order.paymentDate = payment.date_approved ? new Date(payment.date_approved) : order.paymentDate;
+
+        // Si el pago fue aprobado, marcar el pedido como entregado/pagado
+        if (String(payment.status).toLowerCase() === 'approved' || String(payment.status).toLowerCase() === 'approved') {
+            order.estado = 'entregado';
+        }
+
+        await order.save();
+
+        console.log('✅ Pedido actualizado desde webhook. orderId:', order._id, 'paymentStatus:', order.paymentStatus);
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error procesando webhook de Mercado Pago:', error);
+        return res.status(500).json({ success: false, error: error.message || 'webhookError' });
+    }
+});
+
+/**
+ * Webhook para recibir notificaciones de Mercado Pago
+ * POST /api/pagos/webhook
+ * Mercado Pago enviará notificaciones cuando cambie el estado del pago
+ */
+app.post('/api/pagos/webhook', async (req, res) => {
+    try {
+        const { type, data } = req.body;
+
+        // Mercado Pago envía dos tipos de notificaciones:
+        // payment: cuando hay cambio en un pago
+        // merchant_order: cuando hay cambio en una orden
+
+        if (type === 'payment') {
+            const paymentId = data.id;
+            console.log(`📢 Notificación de pago: ${paymentId}`);
+            
+            // Aquí puedes procesar el cambio de estado del pago
+            // Por ejemplo, actualizar el estado del pedido en tu BD
+        } else if (type === 'merchant_order') {
+            const merchantOrderId = data.id;
+            console.log(`📦 Notificación de orden: ${merchantOrderId}`);
+        }
+
+        // Responder con 200 OK para confirmar que recibiste la notificación
+        return res.status(200).json({ success: true });
+
+    } catch (error) {
+        console.error('Error al procesar webhook de Mercado Pago:', error);
+        // Siempre responder con 200 para evitar reintentos
+        return res.status(200).json({ received: true });
+    }
+});
+
+/**
+ * Confirmar pago y actualizar estado del pedido
+ * PUT /api/pagos/confirmar-pago
+ * Body: { orderId, dni, paymentId, preferenceId, status }
+ */
+app.put('/api/pagos/confirmar-pago', async (req, res) => {
+    try {
+        const { orderId, dni, paymentId, preferenceId, status } = req.body;
+
+        if (!orderId || !dni) {
+            return res.status(400).json({ success: false, error: 'datosRequeridos' });
+        }
+
+        // Buscar la orden
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'pedidoNoEncontrado' });
+        }
+
+        // Actualizar información del pago
+        order.metodoPago = 'mercadopago';
+        order.paymentId = paymentId;
+        order.preferenceId = preferenceId;
+        order.paymentStatus = status || 'pending';
+
+        // Si el pago fue aprobado
+        if (status === 'approved') {
+            order.estado = 'pendiente'; // Cambiar a pendiente de envío
+        }
+
+        await order.save();
+
+        return res.json({
+            success: true,
+            message: 'Pago confirmado',
+            pedido: order
+        });
+
+    } catch (error) {
+        console.error('Error al confirmar pago:', error);
+        res.status(500).json({ success: false, error: 'serverError' });
     }
 });
 

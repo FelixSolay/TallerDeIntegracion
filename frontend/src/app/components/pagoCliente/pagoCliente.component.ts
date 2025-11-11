@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { ProductoService } from '../../services/producto.service';
 import { GlobalService } from '../../services/global.service';
 import { PedidoService } from '../../services/pedido.service';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 interface CartItem {
   productId?: string;
@@ -33,13 +34,26 @@ export class PagoClienteComponent implements OnInit {
   procesandoPago: boolean = false;
   mensajeExito: string = '';
   mensajeError: string = '';
+  
+  // MERCADO PAGO
+  mostrarQR: boolean = false;
+  qrImage: SafeUrl | null = null;
+  codigoQR: string = '';
+  generandoQR: boolean = false;
+  preferenceId: string = '';
+  linkPago: string = '';
+  tiempoExpiracion: number = 0;
+
+  // Para usar Math en template
+  Math = Math;
 
   constructor(
     private router: Router,
     private http: HttpClient,
     private productoService: ProductoService,
     private pedidoService: PedidoService,
-    private globalService: GlobalService
+    private globalService: GlobalService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -110,6 +124,100 @@ export class PagoClienteComponent implements OnInit {
       return;
     }
 
+    // Si selecciona Mercado Pago con tarjeta, generar QR
+    if (this.metodoPago === 'tarjeta') {
+      this.generarQRMercadoPago();
+    } else {
+      // Para otros métodos, proceder normalmente
+      this.procesarPagoTradicional(direccionNormalizada);
+    }
+  }
+
+  generarQRMercadoPago(): void {
+    this.generandoQR = true;
+    this.mensajeError = '';
+    this.mensajeExito = '';
+
+    const datosQR = {
+      cantidad: this.total,
+      descripcion: `Pedido para ${this.dni} - ${this.carritoItems.length} productos`,
+      items: this.carritoItems,
+      clienteDni: this.dni,
+      direccionEntrega: this.direccionEntrega
+    };
+
+    this.http.post<any>(`${this.globalService.apiUrl}/api/pagos/generar-qr`, datosQR).subscribe({
+      next: (response) => {
+        this.generandoQR = false;
+        console.log('📡 Response del backend:', response);
+        
+        if (response && response.success) {
+          // Convertir QR base64 a data URI si es necesario
+          let qrCode = response.qrCode || '';
+          console.log('🔍 QR crudo (primeros 100 chars):', qrCode.substring(0, 100));
+          console.log('🔍 Largo del QR:', qrCode.length);
+          
+          if (qrCode && !qrCode.startsWith('data:')) {
+            qrCode = `data:image/png;base64,${qrCode}`;
+            console.log('✅ QR convertido a data URI');
+          } else {
+            console.log('⚠️ QR ya tiene formato correcto o está vacío');
+          }
+          
+          this.codigoQR = qrCode;
+          this.preferenceId = response.preferenceId || '';
+          this.linkPago = response.initPoint || response.checkoutUrl || '';
+          
+          console.log('📊 Valores asignados:', {
+            codigoQR_length: this.codigoQR.length,
+            preferenceId: this.preferenceId,
+            linkPago: this.linkPago,
+            mostrarQR: true
+          });
+          
+          this.mostrarQR = true;
+          this.tiempoExpiracion = 300; // 5 minutos
+          this.iniciarContadorExpiracion();
+          
+          // Verificar que la imagen esté asignada correctamente
+          console.log('✅ QR generado correctamente');
+          console.log('✅ mostrarQR =', this.mostrarQR);
+          console.log('✅ codigoQR asignado =', !!this.codigoQR);
+          
+          this.mensajeExito = '✅ QR generado. Escanéalo con tu celular o haz clic en el link.';
+        } else {
+          console.error('❌ Response sin success:', response);
+          this.mensajeError = response?.message || 'No se pudo generar el QR.';
+        }
+      },
+      error: (error) => {
+        this.generandoQR = false;
+        console.error('❌ Error HTTP al generar QR:', error);
+        console.error('Error status:', error?.status);
+        console.error('Error body:', error?.error);
+        this.mensajeError = 'Error al generar QR. Intenta nuevamente.';
+      }
+    });
+  }
+
+  iniciarContadorExpiracion(): void {
+    const intervalo = setInterval(() => {
+      this.tiempoExpiracion--;
+      if (this.tiempoExpiracion <= 0) {
+        clearInterval(intervalo);
+        this.mostrarQR = false;
+        this.mensajeError = 'El QR ha expirado. Genera uno nuevo.';
+      }
+    }, 1000);
+  }
+
+  abrirLinkPago(): void {
+    if (this.linkPago) {
+      window.open(this.linkPago, '_blank');
+    }
+  }
+
+  procesarPagoTradicional(direccionNormalizada: string): void {
     this.procesandoPago = true;
     this.mensajeError = '';
     this.mensajeExito = '';
@@ -154,4 +262,41 @@ export class PagoClienteComponent implements OnInit {
       }
     });
   }
+
+  cerrarQR(): void {
+    this.mostrarQR = false;
+    this.codigoQR = '';
+    this.preferenceId = '';
+  }
+
+  copiarCodigoQR(): void {
+    if (this.linkPago) {
+      // Si hay link, copia el link
+      navigator.clipboard.writeText(this.linkPago).then(() => {
+        this.mensajeExito = '✅ Link de pago copiado al portapapeles';
+        console.log('✅ Link copiado:', this.linkPago);
+        setTimeout(() => {
+          this.mensajeExito = '';
+        }, 3000);
+      }).catch(err => {
+        console.error('Error al copiar:', err);
+        this.mensajeError = 'No se pudo copiar el link';
+      });
+    } else if (this.preferenceId) {
+      // Si no hay link, copia el ID de preferencia
+      navigator.clipboard.writeText(this.preferenceId).then(() => {
+        this.mensajeExito = '✅ ID de preferencia copiado al portapapeles';
+        console.log('✅ ID copiado:', this.preferenceId);
+        setTimeout(() => {
+          this.mensajeExito = '';
+        }, 3000);
+      }).catch(err => {
+        console.error('Error al copiar:', err);
+        this.mensajeError = 'No se pudo copiar el código';
+      });
+    } else {
+      this.mensajeError = '❌ No hay código para copiar';
+    }
+  }
+
 }

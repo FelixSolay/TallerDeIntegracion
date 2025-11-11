@@ -48,16 +48,16 @@
   <div class="metodo-pago">
     <h2>Método de pago</h2>
     <label class="radio-option">
-      <input type="radio" name="metodoPago" value="tarjeta" [(ngModel)]="metodoPago" />
-      Tarjeta de crédito / débito
+      <input type="radio" name="metodoPago" value="tarjeta" [(ngModel)]="metodoPago" (change)="mostrarQR = false" />
+      💳 Tarjeta de crédito / débito (Mercado Pago)
     </label>
     <label class="radio-option">
-      <input type="radio" name="metodoPago" value="efectivo" [(ngModel)]="metodoPago" />
-      Pago en efectivo (contra entrega)
+      <input type="radio" name="metodoPago" value="efectivo" [(ngModel)]="metodoPago" (change)="mostrarQR = false" />
+      💰 Pago en efectivo (contra entrega)
     </label>
     <label class="radio-option">
-      <input type="radio" name="metodoPago" value="saldo" [(ngModel)]="metodoPago" />
-      Usar saldo a favor
+      <input type="radio" name="metodoPago" value="saldo" [(ngModel)]="metodoPago" (change)="mostrarQR = false" />
+      🏦 Usar saldo a favor
     </label>
   </div>
 
@@ -73,10 +73,71 @@
   <button 
     class="btn-pagar"
     (click)="pagar()"
-  [disabled]="carritoItems.length === 0 || procesandoPago || (metodoPago === 'saldo' && saldoAFavor < total) || !direccionEntrega.trim()"
+  [disabled]="carritoItems.length === 0 || procesandoPago || generandoQR || (metodoPago === 'saldo' && saldoAFavor < total) || !direccionEntrega.trim()"
   >
-    {{ procesandoPago ? 'Procesando...' : 'Confirmar pago' }}
+    {{ generandoQR ? 'Generando QR...' : procesandoPago ? 'Procesando...' : 'Confirmar pago' }}
   </button>
+
+  <!-- MODAL QR MERCADO PAGO -->
+  <div class="qr-modal" *ngIf="mostrarQR">
+    <div class="qr-modal-content">
+      <div class="qr-header">
+        <h2>💳 Pago con Mercado Pago</h2>
+        <button class="btn-cerrar-qr" (click)="cerrarQR()">✕</button>
+      </div>
+
+      <div class="qr-body">
+        <!-- Información del pago -->
+        <div class="pago-info">
+          <div class="info-item">
+            <span class="label">Monto a pagar:</span>
+            <span class="valor">{{ formatearPrecio(total) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Cliente:</span>
+            <span class="valor">{{ dni }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Expira en:</span>
+            <span class="valor" [ngClass]="{'tiempo-bajo': tiempoExpiracion < 60}">
+              {{ Math.floor(tiempoExpiracion / 60) }}:{{ (tiempoExpiracion % 60).toString().padStart(2, '0') }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="divisor">
+
+        <!-- QR Code Display -->
+        <div class="qr-container" *ngIf="codigoQR">
+          <img [src]="codigoQR" alt="QR Code" class="qr-image" />
+          <p class="qr-text">Escanea este código con tu celular</p>
+        </div>
+
+        <hr class="divisor">
+
+        <!-- Opciones de pago -->
+        <div class="opciones-pago">
+          <button class="btn-opciones btn-escanear" (click)="abrirLinkPago()" *ngIf="linkPago">
+            📱 Pagar por link
+          </button>
+          <button class="btn-opciones btn-copiar" (click)="copiarCodigoQR()">
+            📋 Copiar código
+          </button>
+        </div>
+
+        <p class="instruccion">
+          1️⃣ Abre Mercado Pago en tu celular<br>
+          2️⃣ Escanea el QR o usa el link<br>
+          3️⃣ Completa con tu tarjeta<br>
+          4️⃣ ¡Listo! Tu pago se procesará automáticamente
+        </p>
+      </div>
+
+      <div class="qr-footer">
+        <p>🔒 Pago seguro con Mercado Pago (SANDBOX/TEST)</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <ng-template #loadingTpl>

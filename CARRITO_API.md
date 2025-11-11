@@ -1,4 +1,16 @@
-# API del Carrito - Documentación
+# 🛒 API del Carrito + Mercado Pago - Documentación
+
+> **Documentación completa del carrito de compras con integración a Mercado Pago para generar QR**
+
+---
+
+## 🎯 COMIENZA AQUÍ
+
+👉 **[README_MERCADOPAGO.md](./README_MERCADOPAGO.md)** - Intro a la integración MP
+
+👉 **[INDICE_DOCUMENTACION_MP.md](./INDICE_DOCUMENTACION_MP.md)** - Índice completo
+
+---
 
 ## Estructura del Carrito
 
