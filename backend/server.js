@@ -94,7 +94,7 @@ const orderSchema = new mongoose.Schema({
     direccionEntrega: { type: String, required: true },
     items: { type: [orderItemSchema], default: [] },
     total: { type: Number, required: true, min: 0 },
-    estado: { type: String, enum: ['pendiente', 'entregado', 'cancelado'], default: 'pendiente' },
+    estado: { type: String, enum: ['pendiente', 'pagado', 'entregado', 'cancelado'], default: 'pendiente' },
     fechaEntrega: { type: Date, default: null },
     metodoPago: { type: String, default: 'carrito' },
     stockAjustado: { type: Boolean, default: false },
@@ -2897,9 +2897,10 @@ app.post('/api/pagos/webhook', async (req, res) => {
         order.paymentMethod = payment.payment_method_id || payment.payment_type || order.paymentMethod;
         order.paymentDate = payment.date_approved ? new Date(payment.date_approved) : order.paymentDate;
 
-        // Si el pago fue aprobado, marcar el pedido como entregado/pagado
-        if (String(payment.status).toLowerCase() === 'approved' || String(payment.status).toLowerCase() === 'approved') {
-            order.estado = 'entregado';
+        // Si el pago fue aprobado, marcar el pedido como PAGADO (no entregado)
+        // El admin marcará manualmente como entregado cuando lo haya enviado
+        if (String(payment.status).toLowerCase() === 'approved') {
+            order.estado = 'pagado';
         }
 
         await order.save();

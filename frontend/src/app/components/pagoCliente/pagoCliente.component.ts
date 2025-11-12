@@ -43,6 +43,10 @@ export class PagoClienteComponent implements OnInit {
   preferenceId: string = '';
   linkPago: string = '';
   tiempoExpiracion: number = 0;
+  
+  // Polling para verificar pago
+  pollingInterval: any = null;
+  ultimoOrderId: string = '';
 
   // Para usar Math en template
   Math = Math;
@@ -180,10 +184,14 @@ export class PagoClienteComponent implements OnInit {
           this.tiempoExpiracion = 300; // 5 minutos
           this.iniciarContadorExpiracion();
           
+          // ✅ INICIAR POLLING para verificar pagos
+          this.iniciarPollingPago();
+          
           // Verificar que la imagen esté asignada correctamente
           console.log('✅ QR generado correctamente');
           console.log('✅ mostrarQR =', this.mostrarQR);
           console.log('✅ codigoQR asignado =', !!this.codigoQR);
+          console.log('🔄 Iniciando polling para verificar pagos cada 2 segundos');
           
           this.mensajeExito = '✅ QR generado. Escanéalo con tu celular o haz clic en el link.';
         } else {
@@ -208,8 +216,56 @@ export class PagoClienteComponent implements OnInit {
         clearInterval(intervalo);
         this.mostrarQR = false;
         this.mensajeError = 'El QR ha expirado. Genera uno nuevo.';
+        this.detenerPolling();
       }
     }, 1000);
+  }
+
+  // ✅ POLLING: Verificar cada 2 segundos si el pago fue procesado
+  iniciarPollingPago(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+
+    this.pollingInterval = setInterval(() => {
+      this.verificarEstadoPedido();
+    }, 2000); // Consulta cada 2 segundos
+  }
+
+  verificarEstadoPedido(): void {
+    if (!this.dni) return;
+
+    this.http.get<any>(`${this.globalService.apiUrl}/api/customers/${this.dni}/orders`).subscribe({
+      next: (response) => {
+        if (response && response.success && response.pedidos && response.pedidos.length > 0) {
+          // Buscar el pedido más reciente
+          const pedidoReciente = response.pedidos[0];
+
+          // Si el pedido está PAGADO o paymentStatus es aprobado, cerrar la modal
+          if (pedidoReciente.estado === 'pagado' || pedidoReciente.paymentStatus === 'approved') {
+            console.log('✅ PAGO DETECTADO Y APROBADO', pedidoReciente);
+            this.detenerPolling();
+            this.mostrarQR = false;
+            this.mensajeExito = '✅ ¡Pago realizado con éxito! Tu pedido ha sido confirmado.';
+            
+            // Limpiar carrito después de 3 segundos y redirigir
+            setTimeout(() => {
+              this.router.navigateByUrl('/perfil');
+            }, 3000);
+          }
+        }
+      },
+      error: (error) => {
+        console.warn('Error al verificar estado del pedido:', error);
+      }
+    });
+  }
+
+  detenerPolling(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
   }
 
   abrirLinkPago(): void {
@@ -268,6 +324,7 @@ export class PagoClienteComponent implements OnInit {
     this.mostrarQR = false;
     this.codigoQR = '';
     this.preferenceId = '';
+    this.detenerPolling(); // ✅ Detener polling al cerrar modal
   }
 
   copiarCodigoQR(): void {
