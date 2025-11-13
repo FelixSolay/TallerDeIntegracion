@@ -49,18 +49,6 @@
       </div>
     </div>
 
-    <!-- Descripción -->
-    <div class="form-group">
-      <label for="descripcion">Descripción (Opcional)</label>
-      <textarea 
-        id="descripcion" 
-        formControlName="descripcion" 
-        class="form-control"
-        rows="3"
-        placeholder="Descripción de la categoría...">
-      </textarea>
-    </div>
-
     <!-- Imagen (solo para nivel 0) -->
     <div class="form-group" *ngIf="categoriaForm.get('nivel')?.value === 0">
       <label>Imagen de la categoría (Recomendado)</label>

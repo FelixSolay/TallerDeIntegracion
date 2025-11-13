@@ -199,17 +199,18 @@ textarea.form-control {
 }
 
 .btn-secondary {
-  background-color: #999;
+  background-color: #A81B1B;
   color: white;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #777;
+  background-color: #8b1616;
   transform: translateY(-1px);
 }
 
 .btn-secondary:disabled {
   background-color: #ddd;
+  color: #999;
   cursor: not-allowed;
 }
 

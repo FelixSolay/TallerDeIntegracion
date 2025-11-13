@@ -32,16 +32,94 @@
   <div class="direccion-card">
     <h2>Dirección de entrega</h2>
     <p class="direccion-help">
-      Indica la dirección donde deseas recibir tu pedido. Si ya la tenías cargada, la completamos automáticamente por ti.
+      Completa los datos de la dirección donde deseas recibir tu pedido.
     </p>
-    <textarea
-      rows="3"
-      class="direccion-textarea"
-      [(ngModel)]="direccionEntrega"
-      placeholder="Ejemplo: Av. Siempre Viva 742, Piso 4, Depto B"
-    ></textarea>
-    <div class="direccion-error" *ngIf="mensajeError === 'Debes ingresar una dirección de entrega para continuar.'">
-      Debes ingresar una dirección válida.
+    
+    <div class="direccion-grid">
+      <div class="form-group col-span-2">
+        <label for="calle">Calle *</label>
+        <input
+          type="text"
+          id="calle"
+          class="form-input"
+          [(ngModel)]="calle"
+          placeholder="Ej: Av. Siempre Viva"
+          required
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="altura">Altura *</label>
+        <input
+          type="text"
+          id="altura"
+          class="form-input"
+          [(ngModel)]="altura"
+          placeholder="Ej: 742"
+          required
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="piso">Piso</label>
+        <input
+          type="text"
+          id="piso"
+          class="form-input"
+          [(ngModel)]="piso"
+          placeholder="Ej: 4"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="departamento">Depto</label>
+        <input
+          type="text"
+          id="departamento"
+          class="form-input"
+          [(ngModel)]="departamento"
+          placeholder="Ej: B"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="codigoPostal">Código Postal</label>
+        <input
+          type="text"
+          id="codigoPostal"
+          class="form-input"
+          [(ngModel)]="codigoPostal"
+          placeholder="Ej: 5000"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="ciudad">Ciudad *</label>
+        <input
+          type="text"
+          id="ciudad"
+          class="form-input"
+          [(ngModel)]="ciudad"
+          placeholder="Ej: Córdoba"
+          required
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="provincia">Provincia *</label>
+        <input
+          type="text"
+          id="provincia"
+          class="form-input"
+          [(ngModel)]="provincia"
+          placeholder="Ej: Córdoba"
+          required
+        />
+      </div>
+    </div>
+    
+    <div class="direccion-error" *ngIf="mensajeError && mensajeError.includes('dirección')">
+      {{ mensajeError }}
     </div>
   </div>
 
@@ -73,7 +151,7 @@
   <button 
     class="btn-pagar"
     (click)="pagar()"
-  [disabled]="carritoItems.length === 0 || procesandoPago || generandoQR || (metodoPago === 'saldo' && saldoAFavor < total) || !direccionEntrega.trim()"
+    [disabled]="carritoItems.length === 0 || procesandoPago || generandoQR || (metodoPago === 'saldo' && saldoAFavor < total) || !calle.trim() || !altura.trim() || !ciudad.trim() || !provincia.trim()"
   >
     {{ generandoQR ? 'Generando QR...' : procesandoPago ? 'Procesando...' : 'Confirmar pago' }}
   </button>

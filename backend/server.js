@@ -46,6 +46,135 @@ function validatePostalCode(codigoPostal) {
   return regex.test(codigoPostal);
 }
 
+function normalizeString(value) {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+function sanitizeDireccion(rawDireccion) {
+    const base = {
+        calle: '',
+        altura: '',
+        piso: '',
+        departamento: '',
+        ciudad: '',
+        provincia: '',
+        codigoPostal: ''
+    };
+
+    if (!rawDireccion || typeof rawDireccion !== 'object') {
+        return { ...base };
+    }
+
+    return {
+        calle: normalizeString(rawDireccion.calle),
+        altura: normalizeString(rawDireccion.altura),
+        piso: normalizeString(rawDireccion.piso),
+        departamento: normalizeString(rawDireccion.departamento),
+        ciudad: normalizeString(rawDireccion.ciudad),
+        provincia: normalizeString(rawDireccion.provincia),
+        codigoPostal: normalizeString(rawDireccion.codigoPostal)
+    };
+}
+
+function direccionTieneDatos(direccion) {
+    if (!direccion || typeof direccion !== 'object') {
+        return false;
+    }
+    return Object.values(direccion).some(value => typeof value === 'string' && value.trim() !== '');
+}
+
+function buildDireccionCompleta(direccion) {
+    const dir = sanitizeDireccion(direccion);
+    const partes = [];
+
+    if (dir.calle) {
+        const principal = dir.altura ? `${dir.calle} ${dir.altura}` : dir.calle;
+        partes.push(principal);
+    }
+
+    const complementos = [];
+    if (dir.piso) {
+        complementos.push(`Piso ${dir.piso}`);
+    }
+    if (dir.departamento) {
+        complementos.push(`Depto ${dir.departamento}`);
+    }
+    if (complementos.length > 0) {
+        partes.push(complementos.join(', '));
+    }
+
+    const ciudadPartes = [];
+    if (dir.ciudad) {
+        ciudadPartes.push(dir.ciudad);
+    }
+    if (dir.codigoPostal) {
+        ciudadPartes.push(`(${dir.codigoPostal})`);
+    }
+    if (ciudadPartes.length > 0) {
+        partes.push(ciudadPartes.join(' '));
+    }
+
+    if (dir.provincia) {
+        partes.push(dir.provincia);
+    }
+
+    return partes.join(', ').trim();
+}
+
+function customerTieneDireccionGuardada(customer) {
+    if (!customer) {
+        return false;
+    }
+
+    if (customer.direccion && typeof customer.direccion === 'object') {
+        const direccionObj = typeof customer.direccion.toObject === 'function'
+            ? customer.direccion.toObject()
+            : customer.direccion;
+        if (direccionTieneDatos(direccionObj)) {
+            return true;
+        }
+    }
+
+    return !!(customer.domicilio && customer.domicilio.trim() !== '');
+}
+
+function maybePersistDireccion(customer, direccion, direccionCompleta) {
+    if (!customer) {
+        return false;
+    }
+
+    if (customerTieneDireccionGuardada(customer)) {
+        return false;
+    }
+
+    const direccionSanitizada = sanitizeDireccion(direccion);
+    const tieneDatos = direccionTieneDatos(direccionSanitizada);
+    const completa = direccionCompleta || buildDireccionCompleta(direccionSanitizada);
+
+    if (!tieneDatos && !completa) {
+        return false;
+    }
+
+    if (tieneDatos) {
+        customer.direccion = direccionSanitizada;
+        customer.domicilio = completa || buildDireccionCompleta(direccionSanitizada);
+        customer.codigoPostal = direccionSanitizada.codigoPostal || customer.codigoPostal || '';
+    } else if (completa) {
+        customer.direccion = {
+            calle: completa,
+            altura: '',
+            piso: '',
+            departamento: '',
+            ciudad: '',
+            provincia: '',
+            codigoPostal: customer.codigoPostal || ''
+        };
+        customer.domicilio = completa;
+    }
+
+    return true;
+}
+
 // Registrar cliente
 // Definir un esquema y modelo para clientes (ahora con carrito)
 const cartItemSchema = new mongoose.Schema({
@@ -64,6 +193,15 @@ const customerSchema = new mongoose.Schema({
     password: String,
     telefono: String,
     domicilio: { type: String, default: '' },
+    direccion: {
+        calle: { type: String, default: '' },
+        altura: { type: String, default: '' },
+        piso: { type: String, default: '' },
+        departamento: { type: String, default: '' },
+        ciudad: { type: String, default: '' },
+        provincia: { type: String, default: '' },
+        codigoPostal: { type: String, default: '' }
+    },
     codigoPostal: { type: String, default: '' },
     saldoAFavor: { type: Number, default: 0, min: 0 },
     carrito: {
@@ -170,6 +308,7 @@ app.post('/api/customers/register', async (req, res) => {
             telefono,
             password: hashedPassword,
             domicilio: '', // Campo vacío por defecto
+            direccion: sanitizeDireccion({}),
             codigoPostal: '' // Campo vacío por defecto
         });
         return res.json({ success: true, type: "cliente" });
@@ -491,12 +630,18 @@ app.delete('/api/customers/:dni/cart/remove', async (req, res) => {
 app.post('/api/customers/:dni/orders', async (req, res) => {
     const { dni } = req.params;
     const { metodoPago, direccionEntrega } = req.body || {};
+    const direccionPayload = Object.prototype.hasOwnProperty.call(req.body || {}, 'direccion')
+        ? sanitizeDireccion(req.body.direccion)
+        : sanitizeDireccion({});
 
     if (!dni || dni.trim() === '') {
         return res.status(400).json({ success: false, error: 'dniRequerido' });
     }
 
-    if (!direccionEntrega || direccionEntrega.trim() === '') {
+    const direccionTexto = normalizeString(direccionEntrega);
+    const direccionNormalizada = buildDireccionCompleta(direccionPayload) || direccionTexto;
+
+    if (!direccionNormalizada) {
         return res.status(400).json({ success: false, error: 'direccionRequerida' });
     }
 
@@ -512,7 +657,6 @@ app.post('/api/customers/:dni/orders', async (req, res) => {
 
         customer.carrito = recalculateCart(customer.carrito);
 
-        const direccionNormalizada = direccionEntrega.trim();
         const totalPedido = customer.carrito.total;
         const metodoSeleccionado = (metodoPago || '').trim().toLowerCase() || 'carrito';
 
@@ -564,7 +708,7 @@ app.post('/api/customers/:dni/orders', async (req, res) => {
             nuevaOrden = await Order.create(orderPayload);
 
             customer.carrito = { items: [], total: 0 };
-            customer.domicilio = direccionNormalizada;
+            const guardoDireccion = maybePersistDireccion(customer, direccionPayload, direccionNormalizada);
             // El saldo ya fue actualizado si correspondía al método "saldo"
             await customer.save();
 
@@ -572,7 +716,8 @@ app.post('/api/customers/:dni/orders', async (req, res) => {
                 success: true,
                 pedido: nuevaOrden,
                 carrito: customer.carrito,
-                saldoAFavor: customer.saldoAFavor
+                saldoAFavor: customer.saldoAFavor,
+                direccionActualizada: guardoDireccion
             });
         } catch (creationError) {
             if (orderPayload.stockAjustado) {
@@ -963,6 +1108,16 @@ app.get('/api/customers/:dni', async (req, res) => {
             telefono: customer.telefono,
             domicilio: customer.domicilio,
             codigoPostal: customer.codigoPostal,
+            direccion: sanitizeDireccion({
+                ...(customer.direccion && typeof customer.direccion === 'object'
+                    ? (typeof customer.direccion.toObject === 'function'
+                        ? customer.direccion.toObject()
+                        : customer.direccion)
+                    : {}),
+                codigoPostal: customer.direccion && customer.direccion.codigoPostal
+                    ? customer.direccion.codigoPostal
+                    : customer.codigoPostal
+            }),
             saldoAFavor: customer.saldoAFavor || 0
         };
         
@@ -975,67 +1130,77 @@ app.get('/api/customers/:dni', async (req, res) => {
 
 // Actualizar datos del cliente
 app.put('/api/customers/update', async (req, res) => {
-    let { dni, nombre, apellido, telefono, mail, domicilio, codigoPostal } = req.body;
-    
-    // Trim and basic validation - solo nombre, apellido y DNI son obligatorios
-    nombre = nombre ? nombre.trim() : '';
-    apellido = apellido ? apellido.trim() : '';
-    telefono = telefono ? telefono.trim() : '';
-    mail = mail ? mail.trim() : '';
-    domicilio = domicilio ? domicilio.trim() : '';
-    codigoPostal = codigoPostal ? codigoPostal.trim() : '';
-    
-    // Solo validar campos obligatorios
+    let { dni, nombre, apellido, telefono, mail, domicilio, codigoPostal, direccion } = req.body;
+
+    nombre = normalizeString(nombre);
+    apellido = normalizeString(apellido);
+    telefono = normalizeString(telefono);
+    mail = normalizeString(mail);
+    domicilio = normalizeString(domicilio);
+    codigoPostal = normalizeString(codigoPostal);
+
+    const direccionEnviada = Object.prototype.hasOwnProperty.call(req.body, 'direccion');
+    const direccionSanitizada = direccionEnviada ? sanitizeDireccion(direccion) : null;
+    const direccionCompleta = direccionSanitizada ? buildDireccionCompleta(direccionSanitizada) : '';
+
     if (!nombre || !apellido || !dni) {
         return res.status(400).json({ success: false, reason: "missingFields" });
     }
-    
+
     try {
-        // Validar email solo si se proporciona
         if (mail && !validateEmail(mail)) {
             return res.json({ success: false, reason: "badEmail" });
         }
-        
-        // Validar teléfono solo si se proporciona
+
         if (telefono && !validatePhone(telefono)) {
             return res.json({ success: false, reason: "badTelefono" });
         }
-        
-        // Validar código postal solo si se proporciona
-        if (codigoPostal && !validatePostalCode(codigoPostal)) {
+
+        const codigoPostalEvaluar = direccionSanitizada ? direccionSanitizada.codigoPostal : codigoPostal;
+        if (codigoPostalEvaluar && !validatePostalCode(codigoPostalEvaluar)) {
             return res.json({ success: false, reason: "badCodigoPostal" });
         }
-        
-        // Verificar si el email ya existe en otro usuario solo si se proporciona email
+
         if (mail) {
             const existingUser = await Customer.findOne({ mail: mail, dni: { $ne: dni } });
             if (existingUser) {
                 return res.json({ success: false, reason: "mailExists" });
             }
         }
-        
-        // Crear objeto de actualización más simple
+
         const updateData = {
             nombre,
             apellido
         };
-        
+
         if (telefono) updateData.telefono = telefono;
         if (mail) updateData.mail = mail;
-        if (domicilio) updateData.domicilio = domicilio;
-        if (codigoPostal) updateData.codigoPostal = codigoPostal;
-        
-        // Actualizar el cliente
+
+        if (direccionEnviada) {
+            updateData.direccion = direccionSanitizada;
+            const domicilioFinal = direccionCompleta || domicilio;
+            updateData.domicilio = domicilioFinal;
+            const codigoPostalFinal = direccionSanitizada.codigoPostal || codigoPostal;
+            updateData.codigoPostal = codigoPostalFinal || '';
+        } else {
+            if (Object.prototype.hasOwnProperty.call(req.body, 'domicilio')) {
+                updateData.domicilio = domicilio;
+            }
+            if (Object.prototype.hasOwnProperty.call(req.body, 'codigoPostal')) {
+                updateData.codigoPostal = codigoPostal;
+            }
+        }
+
         const updatedCustomer = await Customer.findOneAndUpdate(
             { dni: dni },
             updateData,
             { new: true }
         );
-        
+
         if (!updatedCustomer) {
             return res.status(404).json({ success: false, reason: "clienteNoEncontrado" });
         }
-        
+
         res.json({ success: true, message: "Cliente actualizado correctamente" });
     } catch (error) {
         console.error('Error al actualizar cliente:', error);
@@ -2772,11 +2937,20 @@ app.post('/api/pagos/generar-qr', async (req, res) => {
 
                     const totalOrder = itemsForOrder.reduce((s, it) => s + (it.subtotal || 0), 0) || qrResult.totalAmount || Number(req.body.cantidad || 0);
 
+                    const direccionQrPayload = Object.prototype.hasOwnProperty.call(req.body, 'direccion')
+                        ? sanitizeDireccion(req.body.direccion)
+                        : sanitizeDireccion({});
+                    const direccionQrTexto = normalizeString(req.body.direccionEntrega);
+                    const direccionQrCompleta = buildDireccionCompleta(direccionQrPayload)
+                        || direccionQrTexto
+                        || customer.domicilio
+                        || '';
+
                     const newOrderPayload = {
                         customer: customer._id,
                         dni: customer.dni,
                         nombre: `${customer.nombre || ''} ${customer.apellido || ''}`.trim(),
-                        direccionEntrega: req.body.direccionEntrega || customer.domicilio || '',
+                        direccionEntrega: direccionQrCompleta,
                         items: itemsForOrder,
                         total: Number(totalOrder),
                         estado: 'pendiente',
@@ -2787,6 +2961,10 @@ app.post('/api/pagos/generar-qr', async (req, res) => {
 
                     try {
                         const createdOrder = await Order.create(newOrderPayload);
+                        const guardoDireccion = maybePersistDireccion(customer, direccionQrPayload, direccionQrCompleta);
+                        if (guardoDireccion) {
+                            await customer.save();
+                        }
                         console.log('✅ Pedido creado para preferenceId:', qrResult.preferenceId, 'orderId:', createdOrder._id);
                     } catch (orderCreateErr) {
                         console.warn('No se pudo crear el pedido automáticamente:', orderCreateErr.message || orderCreateErr);

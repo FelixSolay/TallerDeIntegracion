@@ -123,7 +123,7 @@ export class NavbarComponent implements OnInit {
   }
 
   checkScreenSize() {
-    this.isMobile = window.innerWidth <= 600;
+    this.isMobile = window.innerWidth <= 768;
   }
 
   isActive(route: string): boolean {

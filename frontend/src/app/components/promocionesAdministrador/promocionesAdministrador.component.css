@@ -83,6 +83,7 @@
 .acciones {
 	display: flex;
 	align-items: end;
+	gap: 8px;
 }
 
 .btn {
@@ -93,6 +94,10 @@
 	padding: 10px 14px;
 	font-weight: 700;
 	cursor: pointer;
+}
+
+.btn + .btn {
+	margin-left: 6px;
 }
 
 .btn.danger {

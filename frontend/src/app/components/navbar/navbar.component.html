@@ -1,17 +1,16 @@
 <header *ngIf="validRoute && type == ''">
     <a routerLink="/"><img src="images/Logo.png" class="logo"></a>
-    <app-button etiqueta="Iniciar sesión" buttonClass="navbarHome" link="/login"></app-button>
 </header>
 
 <!--Cliente-->
 <header *ngIf="validRoute && (type == 'cliente')">
-    <a routerLink="/"><img src="images/Logo.png" class="logo"></a>
+    <a routerLink="/productos"><img src="images/Logo.png" class="logo"></a>
 
     <ul>
         <li class="categories-menu-container" (click)="toggleCategoriesMenu()">
             <a>
                 <span class="menu-icon">☰</span>
-                <span *ngIf="!isMobile">Categorías</span>
+                <span class="nav-label">Categorías</span>
             </a>
         </li>
         <li class="categories-dropdown-wrapper" *ngIf="showCategoriesMenu">
@@ -47,26 +46,26 @@
                     </div>
             </div>
         </li>
-        <li *ngIf="!isMobile">|</li>
+    <li class="nav-divider" *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('productos')">
             <a routerLink="/productos">
-                <span *ngIf="!isMobile">Productos</span>
+                <span class="nav-label">Productos</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/home azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/home blanco.png">
             </a>
         </li>
-        <li *ngIf="!isMobile">|</li>
+    <li class="nav-divider" *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('promociones')">
             <a routerLink="/promociones">
-                <span *ngIf="!isMobile">Promociones</span>
+                <span class="nav-label">Promociones</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/expensas azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/expensas blanco.png">
             </a>
         </li>
-        <li *ngIf="!isMobile">|</li>
+    <li class="nav-divider" *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('favoritos')">
             <a routerLink="/favoritos">
-                <span *ngIf="!isMobile">Favoritos</span>
+                <span class="nav-label">Favoritos</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/pagar azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/pagar blanco.png">
             </a>
@@ -75,8 +74,8 @@
     <div class="user-menu-container">
         <!-- Botón de carrito a la izquierda del nombre (solo clientes) -->
         <a *ngIf="type === 'cliente'" routerLink="/carrito" class="navbar-cart-button" title="Ir al carrito">
-            <span class="cart-badge" *ngIf="cartTotal > 0">{{ formatPrice(cartTotal) }}</span>
             <span class="cart-icon">🛒</span>
+            <span class="cart-badge" *ngIf="cartTotal > 0">{{ formatPrice(cartTotal) }}</span>
         </a>
         <div class="user" (click)="toggleUserMenu()">
             <p *ngIf="!isMobile">{{name}}</p>
@@ -107,31 +106,31 @@
     <ul>
         <li [class.active]="isActive('admin/categorias')">
             <a routerLink="/admin/categorias">
-                <span *ngIf="!isMobile">Categorías</span>
+                <span class="nav-label">Categorías</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/home azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/home blanco.png">
             </a>
         </li>
-        <li *ngIf="!isMobile">|</li>
+    <li class="nav-divider" *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('admin/productosAdministrador')" >
             <a routerLink="/admin/productosAdministrador">
-                <span *ngIf="!isMobile">Productos</span>
+                <span class="nav-label">Productos</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/expensas azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/expensas blanco.png">
             </a>
         </li>
-        <li *ngIf="!isMobile">|</li>
+    <li class="nav-divider" *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('promocionesAdministrador')">
             <a routerLink="/promocionesAdministrador">
-                <span *ngIf="!isMobile">Promociones</span>
+                <span class="nav-label">Promociones</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/contactos azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/contactos blanco.png">
             </a>
         </li>
-        <li *ngIf="!isMobile">|</li>
+    <li class="nav-divider" *ngIf="!isMobile">|</li>
         <li [class.active]="isActive('ventasAdministrador')">
             <a routerLink="/ventasAdministrador">
-                <span *ngIf="!isMobile">Ventas</span>
+                <span class="nav-label">Ventas</span>
                 <img *ngIf="isMobile && color == 'azul'" src="images/pagar azul.png">
                 <img *ngIf="isMobile && color == 'blanco'" src="images/pagar blanco.png">
             </a>

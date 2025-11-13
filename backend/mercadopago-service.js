@@ -25,6 +25,10 @@ async function createPaymentPreference(orderData) {
             autoReturn = true
         } = orderData;
 
+        const direccion = payer?.direccion && typeof payer.direccion === 'object' ? payer.direccion : {};
+        const alturaNumero = direccion.altura ? parseInt(direccion.altura, 10) : NaN;
+        const alturaValida = Number.isFinite(alturaNumero) ? alturaNumero : 0;
+
         const preferenceBody = {
             items: items.map(item => ({
                 id: item.productId || item.id || 'item',
@@ -49,9 +53,9 @@ async function createPaymentPreference(orderData) {
                     number: payer.dni || payer.identification || ''
                 },
                 address: {
-                    zip_code: payer.zipCode || payer.codigoPostal || '',
-                    street_name: payer.street || payer.domicilio || '',
-                    street_number: payer.streetNumber || 0
+                    zip_code: payer.zipCode || direccion.codigoPostal || payer.codigoPostal || '',
+                    street_name: payer.street || direccion.calle || payer.domicilio || '',
+                    street_number: payer.streetNumber || alturaValida
                 }
             },
             back_urls: {

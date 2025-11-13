@@ -7,6 +7,7 @@ import { ProductoService } from '../../services/producto.service';
 import { GlobalService } from '../../services/global.service';
 import { PedidoService } from '../../services/pedido.service';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { CustomerAddress, buildFullAddress, trimAddress, hasAddressData } from '../../models/customer-address.model';
 
 interface CartItem {
   productId?: string;
@@ -30,6 +31,16 @@ export class PagoClienteComponent implements OnInit {
   saldoAFavor: number = 0;
   metodoPago: string = 'tarjeta';
   direccionEntrega: string = '';
+  
+  // Campos de dirección separados
+  calle: string = '';
+  altura: string = '';
+  piso: string = '';
+  departamento: string = '';
+  codigoPostal: string = '';
+  ciudad: string = '';
+  provincia: string = '';
+  
   cargando: boolean = true;
   procesandoPago: boolean = false;
   mensajeExito: string = '';
@@ -77,8 +88,27 @@ export class PagoClienteComponent implements OnInit {
     this.http.get<any>(`${this.globalService.apiUrl}/api/customers/${this.dni}`).subscribe({
       next: (response) => {
         if (response && response.success && response.cliente) {
-          this.saldoAFavor = response.cliente.saldoAFavor || 0;
-          this.direccionEntrega = response.cliente.domicilio || '';
+          const cliente = response.cliente;
+          this.saldoAFavor = cliente.saldoAFavor || 0;
+
+          const direccionCruda = cliente && typeof cliente.direccion === 'object' && cliente.direccion !== null
+            ? { ...cliente.direccion }
+            : {};
+          if (!direccionCruda.codigoPostal && cliente.codigoPostal) {
+            direccionCruda.codigoPostal = cliente.codigoPostal;
+          }
+          const direccion = trimAddress(direccionCruda);
+          if (hasAddressData(direccion)) {
+            this.applyAddress(direccion);
+            this.direccionEntrega = buildFullAddress(direccion);
+          } else {
+            const domicilioPlano = typeof cliente.domicilio === 'string' ? cliente.domicilio.trim() : '';
+            this.applyAddress(trimAddress({
+              calle: domicilioPlano,
+              codigoPostal: cliente.codigoPostal
+            }));
+            this.direccionEntrega = domicilioPlano;
+          }
         }
       },
       error: (error) => {
@@ -117,27 +147,56 @@ export class PagoClienteComponent implements OnInit {
     this.router.navigateByUrl('/carrito');
   }
 
+  private buildAddressFromFields(): CustomerAddress {
+    return trimAddress({
+      calle: this.calle,
+      altura: this.altura,
+      piso: this.piso,
+      departamento: this.departamento,
+      ciudad: this.ciudad,
+      provincia: this.provincia,
+      codigoPostal: this.codigoPostal
+    });
+  }
+
+  private applyAddress(address: CustomerAddress): void {
+    this.calle = address.calle;
+    this.altura = address.altura;
+    this.piso = address.piso;
+    this.departamento = address.departamento;
+    this.ciudad = address.ciudad;
+    this.provincia = address.provincia;
+    this.codigoPostal = address.codigoPostal;
+  }
+
+  construirDireccionCompleta(): string {
+    return buildFullAddress(this.buildAddressFromFields());
+  }
+
   pagar(): void {
     if (this.procesandoPago || this.carritoItems.length === 0) {
       return;
     }
 
-    const direccionNormalizada = (this.direccionEntrega || '').trim();
-    if (!direccionNormalizada) {
-      this.mensajeError = 'Debes ingresar una dirección de entrega para continuar.';
+    const direccion = this.buildAddressFromFields();
+    const direccionNormalizada = buildFullAddress(direccion);
+    this.direccionEntrega = direccionNormalizada;
+
+    if (!direccionNormalizada || !direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.provincia) {
+      this.mensajeError = 'Debes completar todos los campos obligatorios de la dirección (calle, altura, ciudad y provincia).';
       return;
     }
 
     // Si selecciona Mercado Pago con tarjeta, generar QR
     if (this.metodoPago === 'tarjeta') {
-      this.generarQRMercadoPago();
+      this.generarQRMercadoPago(direccion, direccionNormalizada);
     } else {
       // Para otros métodos, proceder normalmente
-      this.procesarPagoTradicional(direccionNormalizada);
+      this.procesarPagoTradicional(direccion, direccionNormalizada);
     }
   }
 
-  generarQRMercadoPago(): void {
+  generarQRMercadoPago(direccion: CustomerAddress, direccionNormalizada: string): void {
     this.generandoQR = true;
     this.mensajeError = '';
     this.mensajeExito = '';
@@ -147,7 +206,8 @@ export class PagoClienteComponent implements OnInit {
       descripcion: `Pedido para ${this.dni} - ${this.carritoItems.length} productos`,
       items: this.carritoItems,
       clienteDni: this.dni,
-      direccionEntrega: this.direccionEntrega
+      direccionEntrega: direccionNormalizada,
+      direccion
     };
 
     this.http.post<any>(`${this.globalService.apiUrl}/api/pagos/generar-qr`, datosQR).subscribe({
@@ -274,14 +334,15 @@ export class PagoClienteComponent implements OnInit {
     }
   }
 
-  procesarPagoTradicional(direccionNormalizada: string): void {
+  procesarPagoTradicional(direccion: CustomerAddress, direccionNormalizada: string): void {
     this.procesandoPago = true;
     this.mensajeError = '';
     this.mensajeExito = '';
 
     const payload = {
       metodoPago: this.metodoPago,
-      direccionEntrega: direccionNormalizada
+      direccionEntrega: direccionNormalizada,
+      direccion
     };
 
     this.pedidoService.crearPedido(this.dni, payload).subscribe({

@@ -71,7 +71,7 @@
   border-radius: 8px;
   background-color: #E4EFE9;
   color: #09008C;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   transition: all 0.3s;
   box-sizing: border-box;
@@ -93,6 +93,25 @@
   background-color: #E4EFE9;
   color: #09008C;
   padding: 8px;
+}
+
+.filtro-select option.nivel-0 {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.filtro-select option.nivel-1 {
+  padding-left: 20px;
+  font-size: 16px;
+  color: #0c4b8f;
+  font-weight: 500;
+}
+
+.filtro-select option.nivel-2 {
+  padding-left: 32px;
+  font-size: 15px;
+  color: #1d6fa8;
+  font-weight: 500;
 }
 
 .filtro-select optgroup {
@@ -237,8 +256,8 @@
 
 .productos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
   padding: 15px;
 }
 
@@ -260,18 +279,21 @@
 
 .producto-imagen-container {
   width: 100%;
-  height: 200px;
-  background-color: #f5f5f5;
+  height: 180px;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .producto-imagen {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 .producto-sin-imagen {
@@ -286,25 +308,26 @@
 }
 
 .producto-info {
-  padding: 16px;
+  padding: 6px 8px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .producto-nombre {
   color: #09008C;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .producto-descripcion {
   color: #666;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.4;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -324,15 +347,15 @@
 
 .producto-precio {
   color: #47B20E;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
 }
 
 .producto-stock {
   color: #666;
-  font-size: 13px;
+  font-size: 11px;
   background-color: #f0f0f0;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border-radius: 4px;
 }
 
@@ -345,8 +368,8 @@
 .btn-edit, .btn-delete {
   flex: 1;
   border: none;
-  padding: 12px;
-  font-size: 14px;
+  padding: 10px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -437,7 +460,7 @@
 }
 
 .btn-blue-secondary {
-  background-color: #09008C;
+  background-color: #A81B1B;
   color: #E4EFE9;
   border: none;
   padding: 12px 24px;
@@ -449,7 +472,7 @@
 }
 
 .btn-blue-secondary:hover {
-  background-color: #09008C;
+  background-color: #8b1616;
   transform: translateY(-1px);
 }
 

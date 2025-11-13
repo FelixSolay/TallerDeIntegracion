@@ -19,7 +19,8 @@
           <app-button *ngIf="type[0] == 'Administrador'" etiqueta="Ver mis edificios" link="{{url}}"></app-button>
       }
 
+      <app-button *ngIf="type == 'Administrador'" etiqueta="Ir al panel" link="/inicioAdministrador"></app-button>
       <app-button *ngIf="type == 'cliente'" etiqueta="Ir a comprar" link="/productos"></app-button>
-      <app-button *ngIf="type != 'cliente'" etiqueta="Cerrar" (click)="onClose()"></app-button>
+      <app-button *ngIf="type != 'cliente' && type != 'Administrador'" etiqueta="Cerrar" (click)="onClose()"></app-button>
   </div>
 </div>

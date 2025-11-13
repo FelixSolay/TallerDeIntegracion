@@ -31,7 +31,7 @@ export class LoginPopupComponent implements OnInit {
         this.url = url;
       } else {
         if(this.type == 'Administrador')
-          this.url = "/productosAdministrador";
+          this.url = "/inicioAdministrador";
         else
           this.url = "/productos";
       }

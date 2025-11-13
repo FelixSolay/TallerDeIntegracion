@@ -28,6 +28,12 @@
         <div *ngIf="!item.producto.imagen" class="producto-sin-imagen">
           <span>🎉</span>
         </div>
+        <div
+          *ngIf="item.producto.stock !== undefined && item.producto.stock <= 5"
+          class="badge-stock-bajo"
+        >
+          {{ item.producto.stock === 0 ? 'Sin stock' : 'Últimas unidades' }}
+        </div>
       </div>
 
       <div class="producto-info">

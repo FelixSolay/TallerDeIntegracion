@@ -18,11 +18,11 @@
         <a routerLink="/productos" class="btn-primary">Descubrir productos</a>
     </div>
 
-    <div *ngIf="!cargando && favoritos.length > 0" class="favoritos-grid">
-        <div *ngFor="let producto of favoritos" class="favorito-card">
-            <div class="favorito-imagen-container">
-                <img *ngIf="producto.imagen" [src]="producto.imagen" [alt]="producto.nombre" class="favorito-imagen">
-                <div *ngIf="!producto.imagen" class="favorito-sin-imagen">
+    <div *ngIf="!cargando && favoritos.length > 0" class="productos-grid favoritos-grid">
+        <div *ngFor="let producto of favoritos" class="producto-card">
+            <div class="producto-imagen-container">
+                <img *ngIf="producto.imagen" [src]="producto.imagen" [alt]="producto.nombre" class="producto-imagen">
+                <div *ngIf="!producto.imagen" class="producto-sin-imagen">
                     <span>📦</span>
                 </div>
                 <div *ngIf="producto.stock !== undefined && producto.stock <= 5" class="badge-stock-bajo">
@@ -30,26 +30,26 @@
                 </div>
             </div>
 
-            <div class="favorito-info">
-                <h3 class="favorito-nombre">{{ producto.nombre }}</h3>
-                <p *ngIf="producto.descripcion" class="favorito-descripcion">{{ producto.descripcion }}</p>
-                <div class="favorito-precio-container" [class.con-promocion]="producto.promocion">
+            <div class="producto-info">
+                <h3 class="producto-nombre">{{ producto.nombre }}</h3>
+                <p *ngIf="producto.descripcion" class="producto-descripcion">{{ producto.descripcion }}</p>
+                <div class="producto-precio-container" [class.con-promocion]="producto.promocion">
                     <div class="precio-wrapper">
-                        <span class="favorito-precio" [class.precio-promocional]="producto.promocion">
+                        <span class="producto-precio" [class.precio-promocional]="producto.promocion">
                             {{ formatearPrecio(producto.precioVigente) }}
                         </span>
-                        <span *ngIf="producto.promocion" class="favorito-precio-original">
+                        <span *ngIf="producto.promocion" class="producto-precio-original">
                             {{ formatearPrecio(obtenerPrecioOriginal(producto)) }}
                         </span>
                     </div>
                     <span *ngIf="producto.promocion" class="producto-badge-promocion">
                         {{ formatearEtiquetaPromocion(producto) }}
                     </span>
-                    <span *ngIf="producto.stock !== undefined" class="favorito-stock">Stock: {{ producto.stock }}</span>
+                    <span *ngIf="producto.stock !== undefined" class="producto-stock">Stock: {{ producto.stock }}</span>
                 </div>
             </div>
 
-            <div class="favorito-acciones">
+            <div class="producto-acciones">
                 <div class="cantidad-selector">
                     <button class="btn-cantidad" (click)="decrementarCantidad(producto)" [disabled]="producto.cantidad <= 1">−</button>
                     <span class="cantidad-display">{{ producto.cantidad }}</span>
@@ -59,8 +59,14 @@
                     <button class="btn-agregar-carrito" (click)="agregarAlCarrito(producto)" [disabled]="producto.stock === 0">
                         🛒 Agregar al carrito
                     </button>
-                    <button class="btn-remover" type="button" (click)="removerFavorito(producto)" [disabled]="!producto._id" title="Quitar de favoritos">
-                        ✕
+                    <button 
+                        class="btn-favorito btn-remover-favorito"
+                        type="button"
+                        (click)="removerFavorito(producto)"
+                        [disabled]="!producto._id"
+                        title="Quitar de favoritos"
+                        aria-label="Quitar de favoritos">
+                        <span>✕</span>
                     </button>
                 </div>
             </div>

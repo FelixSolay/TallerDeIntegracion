@@ -94,8 +94,8 @@
     padding: 12px;
     border: 1px solid #47B20E; /* green outline across form fields */
     border-radius: 8px;
-    background-color: #D0E8C3; /* light green background for inputs */
-    color: #47B20E; /* dark green text for readability */
+    background-color: #ffffff; /* fondo blanco para mejor legibilidad */
+    color: #09008C; /* texto azul oscuro para contraste */
     font-size: 14px;
     transition: box-shadow 0.18s ease, border-color 0.12s ease;
 }
@@ -111,7 +111,7 @@
     outline: none;
     border-color: #47B20E;
     box-shadow: 0 0 8px rgba(71, 178, 14, 0.18);
-    background-color: #D0E8C3;
+    background-color: #ffffff;
 }
 
 /* Readonly area: DNI and Saldo */
@@ -146,6 +146,14 @@
     flex-direction: row;
     gap: 8px;
     align-items: center;
+}
+
+/* Contenedor para centrar el saldo a favor */
+.saldo-favor-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
 }
 
 .readonly-group .readonly-value {
@@ -254,6 +262,15 @@
     justify-content: center; /* center the contained buttons horizontally */
 }
 
+/* Sección para el botón de eliminar cuenta */
+.delete-account-section {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #D0E8C3;
+}
+
 .bottom-buttons2{
     display: flex;
     gap: 15px;
@@ -279,7 +296,7 @@
 
 .btn-blue-secondary {
     flex: 1;
-    background-color: #09008C;
+    background-color: #A81B1B;
     color: #E4EFE9;
     border: none;
     padding: 12px 20px;
@@ -291,7 +308,7 @@
 }
 
 .btn-blue-secondary:hover {
-    background-color: #09008C;
+    background-color: #8b1616;
 }
 
 /* Responsive design */
@@ -385,10 +402,23 @@
 }
 
 .btn-blue-secondary {
-    background-color: #09008C;
+    background-color: #A81B1B;
     color: #E4EFE9;
 }
 
 .btn-blue-secondary:hover {
-    background-color: #09008C;
+    background-color: #8b1616;
+}
+
+/* Input de solo lectura para el email */
+.readonly-input {
+    background-color: #f0f0f0 !important;
+    cursor: not-allowed !important;
+    color: #666 !important;
+}
+
+.readonly-input:focus {
+    box-shadow: none !important;
+    border-color: #ccc !important;
+    background-color: #f0f0f0 !important;
 }

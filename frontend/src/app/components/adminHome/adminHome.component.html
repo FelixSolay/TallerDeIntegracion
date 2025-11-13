@@ -14,34 +14,31 @@
             <p>Organiza productos por categorías</p>
         </div>
 
-        <!-- Card de Gestión de Productos (deshabilitada) -->
-        <div class="admin-card disabled">
+        <!-- Card de Gestión de Productos -->
+        <div class="admin-card" (click)="navigateTo('/admin/productos')">
             <div class="card-icon products">
                 <span>🛒</span>
             </div>
             <h3>Gestión de productos</h3>
             <p>Agregar, editar y eliminar productos</p>
-            <div class="coming-soon">Próximamente</div>
         </div>
 
-        <!-- Card de Gestión de Promociones (deshabilitada) -->
-        <div class="admin-card disabled">
+        <!-- Card de Gestión de Promociones -->
+        <div class="admin-card" (click)="navigateTo('/promocionesAdministrador')">
             <div class="card-icon promotions">
                 <span>🎁</span>
             </div>
             <h3>Gestión de promociones</h3>
             <p>Crear ofertas y descuentos</p>
-            <div class="coming-soon">Próximamente</div>
         </div>
 
-        <!-- Card de Estadísticas y Ventas (deshabilitada) -->
-        <div class="admin-card disabled">
+        <!-- Card de Estadísticas y Ventas -->
+        <div class="admin-card" (click)="navigateTo('/ventasAdministrador')">
             <div class="card-icon stats">
                 <span>📊</span>
             </div>
             <h3>Estadísticas y ventas</h3>
             <p>Visualiza reportes y métricas</p>
-            <div class="coming-soon">Próximamente</div>
         </div>
     </div>
 </div>

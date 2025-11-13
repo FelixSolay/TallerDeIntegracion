@@ -80,17 +80,18 @@ textarea.form-control {
 
 .input-with-prefix {
   position: relative;
-  display: flex;
-  align-items: center;
+  display: block;
 }
 
 .prefix {
   position: absolute;
   left: 12px;
+  top: 13px;
   color: #09008C;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
   pointer-events: none;
+  z-index: 1;
 }
 
 .form-control.with-prefix {
@@ -219,17 +220,18 @@ textarea.form-control {
 }
 
 .btn-secondary {
-  background-color: #999;
+  background-color: #A81B1B;
   color: white;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #777;
+  background-color: #8b1616;
   transform: translateY(-1px);
 }
 
 .btn-secondary:disabled {
   background-color: #ddd;
+  color: #999;
   cursor: not-allowed;
 }
 

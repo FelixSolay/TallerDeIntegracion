@@ -29,18 +29,44 @@
                         </div>
                         <div class="form-group">
                             <label for="mail">Mail</label>
-                            <input type="email" id="mail" formControlName="mail" placeholder="nombre@mail.com">
-                            <div *ngIf="perfilForm.get('mail')?.invalid && perfilForm.get('mail')?.touched" id="error">
-                                <span *ngIf="perfilForm.get('mail')?.hasError('email')">El correo electrónico no es válido</span>
-                            </div>
+                            <input type="email" id="mail" formControlName="mail" placeholder="nombre@mail.com" readonly class="readonly-input">
                         </div>
                     </div>
         
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="direccion">Dirección</label>
-                            <input type="text" id="direccion" formControlName="domicilio" placeholder="Calle 123">
+                            <label for="calle">Calle</label>
+                            <input type="text" id="calle" formControlName="calle" placeholder="Av. Siempre Viva">
                         </div>
+                        <div class="form-group">
+                            <label for="altura">Altura</label>
+                            <input type="text" id="altura" formControlName="altura" placeholder="742">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="piso">Piso</label>
+                            <input type="text" id="piso" formControlName="piso" placeholder="4">
+                        </div>
+                        <div class="form-group">
+                            <label for="departamento">Departamento</label>
+                            <input type="text" id="departamento" formControlName="departamento" placeholder="B">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ciudad">Ciudad</label>
+                            <input type="text" id="ciudad" formControlName="ciudad" placeholder="Córdoba">
+                        </div>
+                        <div class="form-group">
+                            <label for="provincia">Provincia</label>
+                            <input type="text" id="provincia" formControlName="provincia" placeholder="Córdoba">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="codigoPostal">Código postal</label>
                             <input type="text" id="codigoPostal" formControlName="codigoPostal" placeholder="1234">
@@ -60,7 +86,7 @@
                                     {{userDni}}
                                 </div>
                             </div>   
-                            <div>
+                            <div class="saldo-favor-container">
                                 <div class="readonly-group">
                                     <label class="readonly-label">Saldo a Favor</label>
                                 </div>
@@ -72,7 +98,7 @@
                         <div class="readonly-group saldo">
                             <div class="saldo-container">
                                 <span class="cart-icon-small">🛒</span>
-                                <span class="saldo-label">Total Carrito:</span>
+                                <span class="saldo-label">Total carrito:</span>
                                 <span class="saldo-amount">{{ formatearPrecio(totalCarrito) }}</span>
                             </div>
                         </div>
@@ -93,13 +119,14 @@
                         </button>
         
                     </div>
+
+                    <div class="delete-account-section">
+                        <button type="button" class="btn-red" (click)="eliminarCuenta()">
+                            Eliminar cuenta
+                        </button>
+                    </div>
                 </form>
             </div>
-        </div>
-        <div class="bottom-buttons2">
-            <button type="button" class="btn-red" (click)="eliminarCuenta()">
-                Eliminar cuenta
-            </button>
         </div>
     </div>
 

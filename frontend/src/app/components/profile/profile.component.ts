@@ -5,13 +5,13 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { GlobalService } from '../../services/global.service';
 import { ProductoService } from '../../services/producto.service';
-import { ButtonComponent } from '../button/button.component';
 import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
+import { CustomerAddress, buildFullAddress, hasAddressData, trimAddress } from '../../models/customer-address.model';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, ButtonComponent, ErrorPopupComponent],
+  imports: [ReactiveFormsModule, CommonModule, ErrorPopupComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -22,7 +22,12 @@ export class ProfileComponent implements OnInit {
     apellido: new FormControl('', Validators.required),
     telefono: new FormControl('', [Validators.pattern(/^[\d\s\-\(\)\+]{8,15}$/)]), // No obligatorio
     mail: new FormControl('', [Validators.email]), // Solo validar formato, no obligatorio
-    domicilio: new FormControl(''),
+    calle: new FormControl(''),
+    altura: new FormControl(''),
+    piso: new FormControl(''),
+    departamento: new FormControl(''),
+    ciudad: new FormControl(''),
+    provincia: new FormControl(''),
     codigoPostal: new FormControl('', Validators.pattern(/^\d{4,8}$/))
   });
 
@@ -68,6 +73,18 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  private getDireccionFromForm(): CustomerAddress {
+    return trimAddress({
+      calle: this.perfilForm.value.calle ?? '',
+      altura: this.perfilForm.value.altura ?? '',
+      piso: this.perfilForm.value.piso ?? '',
+      departamento: this.perfilForm.value.departamento ?? '',
+      ciudad: this.perfilForm.value.ciudad ?? '',
+      provincia: this.perfilForm.value.provincia ?? '',
+      codigoPostal: this.perfilForm.value.codigoPostal ?? ''
+    });
+  }
+
   loadUserData(): void {
     // Obtener datos básicos del sessionStorage
     const nombre = sessionStorage.getItem("username") || '';
@@ -87,7 +104,12 @@ export class ProfileComponent implements OnInit {
       apellido: apellido,
       telefono: '',
       mail: '',
-      domicilio: '',
+      calle: '',
+      altura: '',
+      piso: '',
+      departamento: '',
+      ciudad: '',
+      provincia: '',
       codigoPostal: ''
     });
     
@@ -124,14 +146,30 @@ export class ProfileComponent implements OnInit {
             console.log('Domicilio:', cliente.domicilio);
             console.log('Código Postal:', cliente.codigoPostal);
             
+            const direccionCruda = cliente && typeof cliente.direccion === 'object' && cliente.direccion !== null
+              ? { ...cliente.direccion }
+              : {};
+            if (!direccionCruda.codigoPostal && cliente.codigoPostal) {
+              direccionCruda.codigoPostal = cliente.codigoPostal;
+            }
+            const direccion = trimAddress(direccionCruda);
+            if (!hasAddressData(direccion) && typeof cliente.domicilio === 'string') {
+              direccion.calle = cliente.domicilio.trim();
+            }
+
             // Actualizar el formulario con TODOS los datos del backend
             this.perfilForm.setValue({
               nombre: cliente.nombre || '',
               apellido: cliente.apellido || '',
               telefono: cliente.telefono || '',
               mail: cliente.mail || '',
-              domicilio: cliente.domicilio || '',
-              codigoPostal: cliente.codigoPostal || ''
+              calle: direccion.calle,
+              altura: direccion.altura,
+              piso: direccion.piso,
+              departamento: direccion.departamento,
+              ciudad: direccion.ciudad,
+              provincia: direccion.provincia,
+              codigoPostal: direccion.codigoPostal
             });
             
             console.log('✅ DATOS CARGADOS EXITOSAMENTE DESDE EL BACKEND');
@@ -178,15 +216,12 @@ export class ProfileComponent implements OnInit {
     if (this.perfilForm.value.telefono?.trim()) {
       formData.telefono = this.perfilForm.value.telefono.trim();
     }
-    if (this.perfilForm.value.mail?.trim()) {
-      formData.mail = this.perfilForm.value.mail.trim();
-    }
-    if (this.perfilForm.value.domicilio?.trim()) {
-      formData.domicilio = this.perfilForm.value.domicilio.trim();
-    }
-    if (this.perfilForm.value.codigoPostal?.trim()) {
-      formData.codigoPostal = this.perfilForm.value.codigoPostal.trim();
-    }
+    // El mail no se puede modificar por seguridad
+    const direccion = this.getDireccionFromForm();
+    const direccionCompleta = buildFullAddress(direccion);
+    formData.direccion = direccion;
+    formData.domicilio = direccionCompleta;
+    formData.codigoPostal = direccion.codigoPostal;
 
     console.log('Datos a enviar al servidor:', formData);
 

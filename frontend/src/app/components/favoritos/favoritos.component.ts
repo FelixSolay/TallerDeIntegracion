@@ -10,6 +10,7 @@ interface FavoritoConCantidad extends Producto {
   cantidad: number;
   precioVigente: number;
   promocion?: Promocion;
+  esFavorito?: boolean;
 }
 
 @Component({
@@ -169,7 +170,8 @@ export class FavoritosComponent implements OnInit {
       .map(producto => ({
         ...producto,
         cantidad: 1,
-        precioVigente: producto.precio
+        precioVigente: producto.precio,
+        esFavorito: true
       }));
     this.errorMensaje = '';
     this.aplicarPromocionesAFavoritos();

@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { GlobalService } from './global.service';
+import { CustomerAddress } from '../models/customer-address.model';
 
 export interface CrearPedidoPayload {
   metodoPago?: string;
   direccionEntrega: string;
+  direccion?: CustomerAddress;
 }
 
 @Injectable({ providedIn: 'root' })
