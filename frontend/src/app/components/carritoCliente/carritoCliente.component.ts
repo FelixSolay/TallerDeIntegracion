@@ -24,6 +24,9 @@ export class CarritoClienteComponent implements OnInit {
   total: number = 0;
   cargando: boolean = true;
   dni: string = '';
+  confirmacionVisible = false;
+  itemPendienteEliminar: CartItem | null = null;
+  eliminando = false;
 
   constructor(
     private productoService: ProductoService,
@@ -97,14 +100,25 @@ export class CarritoClienteComponent implements OnInit {
     });
   }
 
-  eliminarItem(item: CartItem): void {
-    if (!confirm(`¿Eliminar "${item.nombre}" del carrito?`)) {
+  solicitarEliminarItem(item: CartItem): void {
+    this.itemPendienteEliminar = { ...item };
+    this.confirmacionVisible = true;
+  }
+
+  cancelarEliminacion(): void {
+    this.confirmacionVisible = false;
+    this.itemPendienteEliminar = null;
+  }
+
+  confirmarEliminacion(): void {
+    if (!this.itemPendienteEliminar || this.eliminando) {
       return;
     }
 
+    this.eliminando = true;
     const payload = {
-      productId: item.productId || null,
-      nombre: item.nombre
+      productId: this.itemPendienteEliminar.productId || null,
+      nombre: this.itemPendienteEliminar.nombre
     };
 
     this.productoService.removeCartItem(this.dni, payload).subscribe({
@@ -114,10 +128,13 @@ export class CarritoClienteComponent implements OnInit {
           this.total = response.carrito?.total || 0;
           this.globalService.setCartTotal(this.total);
         }
+        this.eliminando = false;
+        this.cancelarEliminacion();
       },
       error: (error) => {
         console.error('Error al eliminar item:', error);
-        alert('Error al eliminar el producto');
+        this.eliminando = false;
+        this.cancelarEliminacion();
       }
     });
   }

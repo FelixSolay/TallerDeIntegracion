@@ -92,15 +92,13 @@ export class FavoritosComponent implements OnInit {
         if (response && response.success) {
           const total = response.carrito?.total ?? 0;
           this.globalService.setCartTotal(total);
-          alert(`Se agregaron ${producto.cantidad} unidad(es) de ${producto.nombre} al carrito`);
           producto.cantidad = 1;
         } else {
-          alert('No se pudo agregar el producto al carrito.');
+          console.warn('No se pudo agregar el producto al carrito.');
         }
       },
       error: (error: any) => {
         console.error('Error al agregar al carrito desde favoritos:', error);
-        alert('Ocurrió un error al agregar el producto al carrito.');
       }
     });
   }
@@ -113,15 +111,13 @@ export class FavoritosComponent implements OnInit {
     this.favoritosService.eliminarFavorito(this.dniCliente, producto._id).subscribe({
       next: (response: FavoritosResponse) => {
         if (response.success) {
-          alert(`${producto.nombre} se eliminó de tus favoritos.`);
           this.refrescarListado(response);
         } else {
-          alert('No se pudo eliminar el producto de favoritos.');
+          console.warn('No se pudo eliminar el producto de favoritos.');
         }
       },
       error: (error: any) => {
         console.error('Error al eliminar favorito:', error);
-        alert('Ocurrió un error al eliminar el producto de favoritos.');
       }
     });
   }

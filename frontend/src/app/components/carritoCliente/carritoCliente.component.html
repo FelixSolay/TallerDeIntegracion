@@ -54,7 +54,7 @@
 
           <button 
             class="btn-eliminar" 
-            (click)="eliminarItem(item)"
+            (click)="solicitarEliminarItem(item)"
             title="Eliminar producto"
           >
             ✕
@@ -104,5 +104,39 @@
   <div class="loading" *ngIf="cargando">
     <div class="spinner"></div>
     <p>Cargando carrito...</p>
+  </div>
+
+  <div
+    class="confirm-overlay" 
+    *ngIf="confirmacionVisible"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-title"
+    aria-describedby="confirm-text"
+  >
+    <div class="confirm-dialog">
+      <h3 id="confirm-title">¿Deseás eliminar este producto?</h3>
+      <p id="confirm-text">
+        {{ itemPendienteEliminar?.nombre }} se quitará del carrito.
+      </p>
+      <div class="confirm-actions">
+        <button
+          class="btn-confirm"
+          type="button"
+          (click)="confirmarEliminacion()"
+          [disabled]="eliminando"
+        >
+          Sí, eliminar
+        </button>
+        <button
+          class="btn-cancel"
+          type="button"
+          (click)="cancelarEliminacion()"
+          [disabled]="eliminando"
+        >
+          No, en otro momento
+        </button>
+      </div>
+    </div>
   </div>
 </div>
