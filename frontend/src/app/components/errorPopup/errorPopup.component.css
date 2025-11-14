@@ -32,6 +32,14 @@ button {
     width: 100%;
 }
 
+app-button {
+    width: 100%;
+}
+
+app-button button {
+    width: 100%;
+}
+
 #info{
     font-weight: normal;
     margin-top: 0px;

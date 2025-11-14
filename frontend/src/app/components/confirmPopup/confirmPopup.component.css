@@ -1,0 +1,122 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 4, 71, 0.7);
+  z-index: 999;
+}
+
+.popup-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 4, 71, 0.3);
+  min-width: 400px;
+  max-width: 500px;
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.popup-header {
+  background: linear-gradient(135deg, #09008C 0%, #0600b8 100%);
+  color: white;
+  padding: 20px 24px;
+  border-radius: 16px 16px 0 0;
+}
+
+.popup-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.popup-body {
+  padding: 24px;
+}
+
+.popup-body p {
+  margin: 0;
+  color: #09008C;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 24px 24px 24px;
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel {
+  background-color: #E4EFE9;
+  color: #09008C;
+  border: 2px solid #09008C;
+}
+
+.btn-cancel:hover {
+  background-color: #d0e0d5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(9, 0, 140, 0.2);
+}
+
+.btn-confirm {
+  background: linear-gradient(135deg, #47B20E 0%, #3a9b0c 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(71, 178, 14, 0.3);
+}
+
+.btn-confirm:hover {
+  background: linear-gradient(135deg, #52c916 0%, #47B20E 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(71, 178, 14, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .popup-card {
+    min-width: 90%;
+    max-width: 90%;
+  }
+
+  .popup-header h3 {
+    font-size: 18px;
+  }
+
+  .popup-body p {
+    font-size: 14px;
+  }
+
+  .btn-cancel,
+  .btn-confirm {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}

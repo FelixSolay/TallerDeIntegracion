@@ -533,7 +533,7 @@ li a:hover {
   padding: 20px;
   overflow-y: auto;
   overflow-x: hidden;
-  min-width: 680px;
+  min-width: 800px;
 }
 
 .categories-right::-webkit-scrollbar {
@@ -561,7 +561,7 @@ li a:hover {
 
 .subcategories-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 20px;
   max-width: 100%;
 }
@@ -579,6 +579,12 @@ li a:hover {
   margin-bottom: 5px;
   padding-bottom: 5px;
   border-bottom: 2px solid #47B20E;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.subcategory-title:hover {
+  color: #47B20E;
 }
 
 .subcategory-group ul {
@@ -596,6 +602,10 @@ li a:hover {
   padding: 5px 0;
   cursor: pointer;
   transition: color 0.2s ease;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.3;
 }
 
 .subcategory-group ul li:hover {

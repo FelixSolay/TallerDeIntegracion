@@ -33,7 +33,7 @@
 
 .filtros select,
 .filtros input {
-	width: 170px;
+	width: 140px;
 	padding: 8px 10px;
 	height: 40px;
 	border: 1px solid #47B20E;
@@ -46,8 +46,17 @@
 .filtro-acciones {
 	display: flex;
 	gap: 10px;
+	align-items: flex-end;
+}
+
+.filtro-acciones .btn {
+	height: 40px;
+	padding: 0 14px;
+	display: flex;
 	align-items: center;
-	align-self: center;
+	justify-content: center;
+	margin-top: 0px;
+	margin-bottom: 15px;
 }
 
 .btn {
@@ -97,6 +106,11 @@
 .acciones {
 	display: flex;
 	gap: 8px;
+}
+
+.acciones .btn {
+	padding: 6px 10px;
+	font-size: 0.85em;
 }
 
 .badge {

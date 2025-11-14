@@ -13,6 +13,7 @@ interface FavoritoConCantidad extends Producto {
   precioVigente: number;
   promocion?: Promocion;
   esFavorito?: boolean;
+  cantidadEnCarrito?: number; // Nueva propiedad
 }
 
 type OrdenFavoritos = 'relevancia' | 'nombre-asc' | 'nombre-desc' | 'precio-asc' | 'precio-desc';
@@ -40,6 +41,7 @@ export class FavoritosComponent implements OnInit {
   huerfanos: Categoria[] = [];
 
   private promocionesActivas: Map<string, Promocion> = new Map();
+  private productosEnCarrito: Map<string, number> = new Map(); // Nuevo: track del carrito
 
   constructor(
     private globalService: GlobalService,
@@ -62,6 +64,7 @@ export class FavoritosComponent implements OnInit {
     this.cargarCategorias();
     this.cargarPromocionesActivas();
     this.cargarFavoritos();
+    this.cargarCarrito(); // Nuevo: cargar estado del carrito
   }
 
   cargarFavoritos(): void {
@@ -85,6 +88,34 @@ export class FavoritosComponent implements OnInit {
     });
   }
 
+  cargarCarrito(): void {
+    this.productoService.getCart(this.dniCliente).subscribe({
+      next: (response) => {
+        if (response && response.success && response.carrito?.items) {
+          this.productosEnCarrito.clear();
+          response.carrito.items.forEach((item: any) => {
+            const productId = item.productId || item.nombre;
+            if (productId) {
+              this.productosEnCarrito.set(productId, item.cantidad);
+            }
+          });
+          this.actualizarCantidadesEnCarrito();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error al cargar carrito:', error);
+      }
+    });
+  }
+
+  private actualizarCantidadesEnCarrito(): void {
+    this.favoritos.forEach(producto => {
+      const id = producto._id || producto.nombre;
+      producto.cantidadEnCarrito = this.productosEnCarrito.get(id) || 0;
+    });
+    this.aplicarOrdenamiento();
+  }
+
   incrementarCantidad(producto: FavoritoConCantidad): void {
     if (producto.stock && producto.cantidad < producto.stock) {
       producto.cantidad++;
@@ -102,7 +133,7 @@ export class FavoritosComponent implements OnInit {
       productId: producto._id ?? null,
       nombre: producto.nombre,
       precioUnitario: producto.precioVigente,
-      cantidad: producto.cantidad
+      cantidad: 1
     };
 
     this.productoService.addToCart(this.dniCliente, payload).subscribe({
@@ -110,13 +141,66 @@ export class FavoritosComponent implements OnInit {
         if (response && response.success) {
           const total = response.carrito?.total ?? 0;
           this.globalService.setCartTotal(total);
-          producto.cantidad = 1;
+          
+          // Actualizar cantidad en carrito
+          const id = producto._id || producto.nombre;
+          const cantidadActual = this.productosEnCarrito.get(id) || 0;
+          this.productosEnCarrito.set(id, cantidadActual + 1);
+          producto.cantidadEnCarrito = this.productosEnCarrito.get(id);
+          
+          console.log('Agregando 1 unidad al carrito desde favoritos');
         } else {
           console.warn('No se pudo agregar el producto al carrito.');
         }
       },
       error: (error: unknown) => {
         console.error('Error al agregar al carrito desde favoritos:', error);
+      }
+    });
+  }
+
+  incrementarEnCarrito(producto: FavoritoConCantidad): void {
+    if (!this.dniCliente || !producto.cantidadEnCarrito) return;
+    
+    const nuevaCantidad = producto.cantidadEnCarrito + 1;
+    if (producto.stock && nuevaCantidad > producto.stock) return;
+    
+    this.actualizarCantidadEnCarrito(producto, nuevaCantidad);
+  }
+
+  decrementarEnCarrito(producto: FavoritoConCantidad): void {
+    if (!this.dniCliente || !producto.cantidadEnCarrito) return;
+    
+    const nuevaCantidad = producto.cantidadEnCarrito - 1;
+    this.actualizarCantidadEnCarrito(producto, nuevaCantidad);
+  }
+
+  private actualizarCantidadEnCarrito(producto: FavoritoConCantidad, nuevaCantidad: number): void {
+    const payload = {
+      productId: producto._id || null,
+      nombre: producto.nombre,
+      cantidad: nuevaCantidad
+    };
+
+    this.productoService.updateCartItem(this.dniCliente, payload).subscribe({
+      next: (response) => {
+        if (response && response.success) {
+          const total = response.carrito?.total ?? 0;
+          this.globalService.setCartTotal(total);
+          
+          const id = producto._id || producto.nombre;
+          if (nuevaCantidad === 0) {
+            this.productosEnCarrito.delete(id);
+            producto.cantidadEnCarrito = 0;
+          } else {
+            this.productosEnCarrito.set(id, nuevaCantidad);
+            producto.cantidadEnCarrito = nuevaCantidad;
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Error al actualizar cantidad en carrito:', err);
+        this.cargarCarrito(); // Recargar en caso de error
       }
     });
   }
@@ -262,13 +346,23 @@ export class FavoritosComponent implements OnInit {
     if (!this.categoriaSeleccionada) {
       this.favoritosFiltrados = [...this.favoritosOrdenados];
     } else {
+      const categoriasIncluidas = this.obtenerCategoriasHijas(this.categoriaSeleccionada);
       this.favoritosFiltrados = this.favoritosOrdenados.filter(fav => {
         const catId = typeof fav.categoriaId === 'string' 
           ? fav.categoriaId 
           : (fav.categoriaId as any)?._id;
-        return catId === this.categoriaSeleccionada;
+        return categoriasIncluidas.includes(catId);
       });
     }
+  }
+
+  obtenerCategoriasHijas(categoriaId: string): string[] {
+    const resultado = [categoriaId];
+    const hijos = this.categorias.filter(c => c.categoriaPadreId === categoriaId);
+    for (const hijo of hijos) {
+      resultado.push(...this.obtenerCategoriasHijas(hijo._id!));
+    }
+    return resultado;
   }
 
   getNombreCategoria(catId: string): string {
@@ -306,6 +400,8 @@ export class FavoritosComponent implements OnInit {
       }));
     this.errorMensaje = '';
     this.aplicarPromocionesAFavoritos();
+    // Actualizar cantidades del carrito después de cargar favoritos
+    this.actualizarCantidadesEnCarrito();
   }
 
   private cargarPromocionesActivas(): void {

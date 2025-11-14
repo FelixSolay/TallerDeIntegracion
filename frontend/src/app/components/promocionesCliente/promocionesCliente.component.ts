@@ -15,6 +15,7 @@ interface PromocionCardItem {
   cantidad: number;
   esFavorito: boolean;
   precioVigente: number;
+  cantidadEnCarrito?: number; // Nueva propiedad
 }
 
 type OrdenPromos = 'relevancia' | 'nombre-asc' | 'nombre-desc' | 'precio-asc' | 'precio-desc';
@@ -45,6 +46,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
   private favoritosSub?: Subscription;
   private promocionesBase: Promocion[] = [];
   private productosMap: Map<string, Producto> = new Map();
+  private productosEnCarrito: Map<string, number> = new Map(); // Nuevo: track del carrito
 
   constructor(
     private promocionService: PromocionService,
@@ -66,6 +68,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
 
     if (this.dniCliente) {
       this.cargarFavoritos();
+      this.cargarCarrito(); // Nuevo: cargar estado del carrito
     }
 
     this.cargarCategorias();
@@ -85,6 +88,34 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
         console.error('Error al cargar favoritos:', error);
       }
     });
+  }
+
+  private cargarCarrito(): void {
+    this.productoService.getCart(this.dniCliente).subscribe({
+      next: (response) => {
+        if (response && response.success && response.carrito?.items) {
+          this.productosEnCarrito.clear();
+          response.carrito.items.forEach((item: any) => {
+            const productId = item.productId || item.nombre;
+            if (productId) {
+              this.productosEnCarrito.set(productId, item.cantidad);
+            }
+          });
+          this.actualizarCantidadesEnCarrito();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error al cargar carrito:', error);
+      }
+    });
+  }
+
+  private actualizarCantidadesEnCarrito(): void {
+    this.promociones.forEach(item => {
+      const id = item.producto._id || item.producto.nombre;
+      item.cantidadEnCarrito = this.productosEnCarrito.get(id) || 0;
+    });
+    this.aplicarOrdenamiento();
   }
 
   private cargarDatos(): void {
@@ -156,6 +187,8 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
 
     this.promociones = tarjetas;
     this.aplicarOrdenamiento();
+    // Actualizar cantidades del carrito después de construir promociones
+    this.actualizarCantidadesEnCarrito();
   }
 
   private crearProductoFallback(promo: Promocion): Producto | null {
@@ -203,7 +236,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
       productId,
       nombre: item.producto.nombre,
       precioUnitario: item.precioVigente,
-      cantidad: item.cantidad
+      cantidad: 1
     };
 
     this.productoService.addToCart(dni, payload).subscribe({
@@ -211,8 +244,14 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
         if (response && response.success) {
           const total = response.carrito?.total ?? 0;
           this.globalService.setCartTotal(total);
-          alert(`${item.producto.nombre} se agregó al carrito con precio promocional.`);
-          item.cantidad = 1;
+          
+          // Actualizar cantidad en carrito
+          const id = item.producto._id || item.producto.nombre;
+          const cantidadActual = this.productosEnCarrito.get(id) || 0;
+          this.productosEnCarrito.set(id, cantidadActual + 1);
+          item.cantidadEnCarrito = this.productosEnCarrito.get(id);
+          
+          console.log('Agregando 1 unidad de promoción al carrito');
         } else {
           alert('No se pudo agregar la promoción al carrito.');
         }
@@ -220,6 +259,52 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
       error: (err: unknown) => {
         console.error('Error al agregar promoción al carrito:', err);
         alert('No se pudo agregar la promoción al carrito.');
+      }
+    });
+  }
+
+  incrementarEnCarrito(item: PromocionCardItem): void {
+    if (!this.dniCliente || !item.cantidadEnCarrito) return;
+    
+    const nuevaCantidad = item.cantidadEnCarrito + 1;
+    if (item.producto.stock && nuevaCantidad > item.producto.stock) return;
+    
+    this.actualizarCantidadEnCarrito(item, nuevaCantidad);
+  }
+
+  decrementarEnCarrito(item: PromocionCardItem): void {
+    if (!this.dniCliente || !item.cantidadEnCarrito) return;
+    
+    const nuevaCantidad = item.cantidadEnCarrito - 1;
+    this.actualizarCantidadEnCarrito(item, nuevaCantidad);
+  }
+
+  private actualizarCantidadEnCarrito(item: PromocionCardItem, nuevaCantidad: number): void {
+    const payload = {
+      productId: item.producto._id || null,
+      nombre: item.producto.nombre,
+      cantidad: nuevaCantidad
+    };
+
+    this.productoService.updateCartItem(this.dniCliente, payload).subscribe({
+      next: (response) => {
+        if (response && response.success) {
+          const total = response.carrito?.total ?? 0;
+          this.globalService.setCartTotal(total);
+          
+          const id = item.producto._id || item.producto.nombre;
+          if (nuevaCantidad === 0) {
+            this.productosEnCarrito.delete(id);
+            item.cantidadEnCarrito = 0;
+          } else {
+            this.productosEnCarrito.set(id, nuevaCantidad);
+            item.cantidadEnCarrito = nuevaCantidad;
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Error al actualizar cantidad en carrito:', err);
+        this.cargarCarrito(); // Recargar en caso de error
       }
     });
   }
@@ -246,17 +331,10 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
       next: (resp: FavoritosResponse) => {
         if (resp.success) {
           item.esFavorito = !esFavorito;
-          const mensaje = esFavorito
-            ? `${item.producto.nombre} se eliminó de tus favoritos.`
-            : `${item.producto.nombre} se agregó a tus favoritos.`;
-          alert(mensaje);
-        } else {
-          alert('No se pudo actualizar el favorito.');
         }
       },
       error: (err: unknown) => {
         console.error('Error al actualizar favorito:', err);
-        alert('Ocurrió un problema al actualizar tus favoritos.');
       }
     });
   }
@@ -339,13 +417,23 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
     if (!this.categoriaSeleccionada) {
       this.promocionesFiltradas = [...this.promocionesOrdenadas];
     } else {
+      const categoriasIncluidas = this.obtenerCategoriasHijas(this.categoriaSeleccionada);
       this.promocionesFiltradas = this.promocionesOrdenadas.filter(item => {
         const catId = typeof item.producto.categoriaId === 'string' 
           ? item.producto.categoriaId 
           : (item.producto.categoriaId as any)?._id;
-        return catId === this.categoriaSeleccionada;
+        return categoriasIncluidas.includes(catId);
       });
     }
+  }
+
+  obtenerCategoriasHijas(categoriaId: string): string[] {
+    const resultado = [categoriaId];
+    const hijos = this.categorias.filter(c => c.categoriaPadreId === categoriaId);
+    for (const hijo of hijos) {
+      resultado.push(...this.obtenerCategoriasHijas(hijo._id!));
+    }
+    return resultado;
   }
 
   getNombreCategoria(catId: string): string {

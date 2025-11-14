@@ -62,7 +62,7 @@
           class="orden-select"
           [(ngModel)]="ordenSeleccionado"
           (change)="onOrdenChange()">
-          <option value="relevancia">Más relevantes (descuentos)</option>
+          <option value="relevancia">Más relevantes</option>
           <option value="nombre-asc">Nombre A → Z</option>
           <option value="nombre-desc">Nombre Z → A</option>
           <option value="precio-asc">Precio menor a mayor</option>
@@ -127,25 +127,34 @@
       </div>
 
       <div class="producto-acciones">
-        <div class="cantidad-selector">
-          <button class="btn-cantidad" (click)="decrementarCantidad(item)" [disabled]="item.cantidad <= 1">−</button>
-          <span class="cantidad-display">{{ item.cantidad }}</span>
-          <button
-            class="btn-cantidad"
-            (click)="incrementarCantidad(item)"
-            [disabled]="item.producto.stock !== undefined && item.cantidad >= item.producto.stock"
-          >
-            +
-          </button>
-        </div>
         <div class="botones-compra">
+          <!-- Mostrar botón "Agregar" solo si NO está en el carrito -->
           <button
+            *ngIf="!item.cantidadEnCarrito || item.cantidadEnCarrito === 0"
             class="btn-agregar-carrito"
             (click)="agregarAlCarrito(item)"
             [disabled]="item.producto.stock === 0"
           >
             🛒 Llevar promoción
           </button>
+
+          <!-- Mostrar controles del carrito en línea si ya está agregado -->
+          <div class="cantidad-carrito-inline" *ngIf="item.cantidadEnCarrito && item.cantidadEnCarrito > 0">
+            <button 
+              class="btn-cantidad-carrito" 
+              (click)="decrementarEnCarrito(item)"
+              [disabled]="item.cantidadEnCarrito <= 0">
+              −
+            </button>
+            <span class="cantidad-en-carrito">{{item.cantidadEnCarrito}}</span>
+            <button 
+              class="btn-cantidad-carrito" 
+              (click)="incrementarEnCarrito(item)"
+              [disabled]="item.producto.stock !== undefined && item.cantidadEnCarrito >= item.producto.stock">
+              +
+            </button>
+          </div>
+
           <button
             type="button"
             class="btn-favorito"

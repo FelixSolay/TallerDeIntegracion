@@ -1,0 +1,13 @@
+<div class="overlay" (click)="cancel()"></div>
+<div class="popup-card">
+  <div class="popup-header">
+    <h3>{{ title }}</h3>
+  </div>
+  <div class="popup-body">
+    <p>{{ message }}</p>
+  </div>
+  <div class="popup-actions">
+    <button class="btn-cancel" (click)="cancel()">{{ cancelText }}</button>
+    <button class="btn-confirm" (click)="confirm()">{{ confirmText }}</button>
+  </div>
+</div>

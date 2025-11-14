@@ -3,7 +3,6 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { filter } from 'rxjs';
-import { ButtonComponent } from '../button/button.component';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
 import { ProductoService } from '../../services/producto.service';
 import { GlobalService } from '../../services/global.service';
@@ -11,7 +10,7 @@ import { GlobalService } from '../../services/global.service';
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [ RouterModule, NgIf, CommonModule, ButtonComponent, FormsModule ],
+  imports: [ RouterModule, NgIf, CommonModule, FormsModule ],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css'
 })
@@ -119,7 +118,7 @@ export class NavbarComponent implements OnInit {
   }
 
   // Escucha los cambios de tamaño de la ventana
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize() {
     this.checkScreenSize();
   }
@@ -147,6 +146,10 @@ export class NavbarComponent implements OnInit {
     console.log('Toggle categories menu', this.showCategoriesMenu);
     this.showCategoriesMenu = !this.showCategoriesMenu;
     this.showUserMenu = false;
+    // Si se está abriendo el menú, activar la primera categoría
+    if (this.showCategoriesMenu && this.categorias.length > 0) {
+      this.setActiveCategory(this.categorias[0]);
+    }
   }
 
   closeUserMenu(): void {
@@ -162,6 +165,10 @@ export class NavbarComponent implements OnInit {
       clearTimeout(this.categoryMenuTimeout);
     }
     this.showCategoriesMenu = true;
+    // Activar automáticamente la primera categoría
+    if (this.categorias.length > 0) {
+      this.setActiveCategory(this.categorias[0]);
+    }
     console.log('Menú abierto:', this.showCategoriesMenu, 'Categorías:', this.categorias.length);
   }
 

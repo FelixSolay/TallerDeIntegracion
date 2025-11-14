@@ -75,7 +75,7 @@
   padding: 12px;
   border: 1px solid #47B20E;
   border-radius: 8px;
-  background-color: #E4EFE9;
+  background-color: #ffffff;
   color: #09008C;
   font-size: 15px;
   cursor: pointer;
@@ -92,32 +92,41 @@
   outline: none;
   border-color: #47B20E;
   box-shadow: 0 0 8px rgba(71, 178, 14, 0.18);
-  background-color: #E4EFE9;
+  background-color: #ffffff;
 }
 
 .filtro-select option {
-  background-color: #E4EFE9;
+  background-color: #ffffff;
   color: #09008C;
-  padding: 8px;
+  padding: 10px 8px;
+  line-height: 1.6;
 }
 
 .filtro-select option.nivel-0 {
   font-weight: 700;
-  font-size: 17px;
+  font-size: 16px;
+  background-color: #f8f9fa;
+  color: #000447;
+  padding: 12px 8px;
+  margin-top: 4px;
 }
 
 .filtro-select option.nivel-1 {
-  padding-left: 20px;
-  font-size: 16px;
-  color: #0c4b8f;
+  padding-left: 24px;
+  font-size: 15px;
+  color: #09008C;
   font-weight: 500;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .filtro-select option.nivel-2 {
-  padding-left: 32px;
-  font-size: 15px;
-  color: #1d6fa8;
-  font-weight: 500;
+  padding-left: 40px;
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 400;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .filtro-select optgroup {
@@ -577,6 +586,46 @@
   opacity: 0.6;
 }
 
+/* Control de cantidad en línea (dentro de botones-compra) */
+.cantidad-carrito-inline {
+  flex: 1 1 80%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #47B20E 0%, #3a9b0c 100%);
+  border-radius: 6px;
+  padding: 4px 10px;
+  box-shadow: 0 2px 6px rgba(71, 178, 14, 0.3);
+}
+
+.btn-cantidad-carrito {
+  background: white;
+  color: #47B20E;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-cantidad-carrito:hover {
+  background: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.cantidad-en-carrito {
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
 .btn-favorito {
   flex: 0 0 20%;
   min-width: var(--fav-btn-min-width);
@@ -606,6 +655,70 @@
 .btn-favorito:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Estilos para cantidad en carrito */
+.cantidad-carrito {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #47B20E 0%, #3a9b0c 100%);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(71, 178, 14, 0.3);
+}
+
+.btn-cantidad-carrito {
+  width: 32px;
+  height: 32px;
+  border: 2px solid white;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-cantidad-carrito:hover:not(:disabled) {
+  background-color: white;
+  color: #47B20E;
+  transform: scale(1.1);
+}
+
+.btn-cantidad-carrito:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cantidad-en-carrito {
+  min-width: 40px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.badge-en-carrito {
+  flex: 1 1 80%;
+  background: linear-gradient(135deg, #47B20E 0%, #3a9b0c 100%);
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(71, 178, 14, 0.3);
 }
 
 @media (max-width: 1200px) {

@@ -12,6 +12,10 @@
         </select>
       </label>
       <label>
+        N° Pedido
+        <input [(ngModel)]="filtroPedidoId" placeholder="Ej: abc12345" />
+      </label>
+      <label>
         DNI
         <input [(ngModel)]="filtroDni" placeholder="Ej: 12345678" />
       </label>
@@ -37,6 +41,7 @@
     <table class="tabla">
       <thead>
         <tr>
+          <th>N° Pedido</th>
           <th>Fecha</th>
           <th>DNI</th>
           <th>Dirección</th>
@@ -47,10 +52,11 @@
       </thead>
       <tbody>
         <tr *ngFor="let p of pedidos">
-          <td>{{ p.creadoEl | date:'short' }}</td>
+          <td>{{ p._id.slice(-8) }}</td>
+          <td>{{ p.creadoEl | date:'dd/MM/yyyy HH:mm' }}</td>
           <td>{{ p.dni }}</td>
           <td>{{ p.direccionEntrega }}</td>
-          <td>{{ p.total | currency:'ARS' }}</td>
+          <td>${{ p.total | number:'1.2-2' }}</td>
           <td>
             <span class="badge" [class.pendiente]="p.estado==='pendiente'" [class.entregado]="p.estado==='entregado'" [class.cancelado]="p.estado==='cancelado'">
               {{ p.estado }}
@@ -246,11 +252,11 @@
           </div>
           <div>
             <label>Creado</label>
-            <div>{{ pd.creadoEl | date:'short' }}</div>
+            <div>{{ pd.creadoEl | date:'dd/MM/yyyy HH:mm' }}</div>
           </div>
           <div>
             <label>Entrega</label>
-            <div>{{ pd.fechaEntrega ? (pd.fechaEntrega | date:'short') : '-' }}</div>
+            <div>{{ pd.fechaEntrega ? (pd.fechaEntrega | date:'dd/MM/yyyy HH:mm') : '-' }}</div>
           </div>
         </div>
         <div class="mt">
@@ -272,14 +278,14 @@
               <tr *ngFor="let it of pd.items">
                 <td>{{ it.nombre }}</td>
                 <td class="right">{{ it.cantidad }}</td>
-                <td class="right">{{ it.precioUnitario | currency:'ARS' }}</td>
-                <td class="right">{{ it.subtotal | currency:'ARS' }}</td>
+                <td class="right">${{ it.precioUnitario | number:'1.2-2' }}</td>
+                <td class="right">${{ it.subtotal | number:'1.2-2' }}</td>
               </tr>
             </tbody>
           </table>
           <div class="total">
             <span>Total</span>
-            <strong>{{ pd.total | currency:'ARS' }}</strong>
+            <strong>${{ pd.total | number:'1.2-2' }}</strong>
           </div>
         </div>
       </div>
@@ -289,3 +295,14 @@
     </div>
   </div>
 </div>
+
+<!-- Popup de confirmación -->
+<app-confirm-popup
+  *ngIf="mostrarConfirmacion"
+  [title]="confirmacionTitulo"
+  [message]="confirmacionMensaje"
+  confirmText="Confirmar"
+  cancelText="Cancelar"
+  [onConfirm]="confirmarAccion.bind(this)"
+  [onCancel]="cerrarConfirmacion.bind(this)"
+></app-confirm-popup>

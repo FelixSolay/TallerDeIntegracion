@@ -13,6 +13,10 @@ form {
     position: relative;
 }
 
+input {
+    width: 100% !important;
+}
+
 #form {
     width: 100%;
     display: flex;

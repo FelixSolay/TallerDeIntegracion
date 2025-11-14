@@ -17,7 +17,7 @@ interface AdminLoginResponse {
 @Component({
   selector: 'app-admin-login',
   standalone: true,
-  imports: [ ReactiveFormsModule, CommonModule, ButtonComponent, ErrorPopupComponent, LoginPopupComponent ],
+  imports: [ ReactiveFormsModule, CommonModule, ErrorPopupComponent, LoginPopupComponent ],
   templateUrl: './adminLogin.component.html',
   styleUrl: './adminLogin.component.css'
 })

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProductoService } from '../../services/producto.service';
 import { GlobalService } from '../../services/global.service';
-import { firstValueFrom } from 'rxjs';
 
 interface CartItem {
   productId?: string;
@@ -55,7 +54,8 @@ export class CarritoClienteComponent implements OnInit {
     this.productoService.getCart(this.dni).subscribe({
       next: (response) => {
         if (response && response.success) {
-          this.items = response.carrito?.items || [];
+          // Crear nuevas referencias para evitar problemas de caché
+          this.items = [...(response.carrito?.items || [])];
           this.total = response.carrito?.total || 0;
           this.globalService.setCartTotal(this.total);
         }
@@ -91,7 +91,8 @@ export class CarritoClienteComponent implements OnInit {
     this.productoService.updateCartItem(this.dni, payload).subscribe({
       next: (response) => {
         if (response && response.success) {
-          this.items = response.carrito?.items || [];
+          // Actualizar con nuevas referencias para evitar caché
+          this.items = [...(response.carrito?.items || [])];
           this.total = response.carrito?.total || 0;
           this.globalService.setCartTotal(this.total);
         }
@@ -99,6 +100,8 @@ export class CarritoClienteComponent implements OnInit {
       error: (error) => {
         console.error('Error al actualizar cantidad:', error);
         alert('Error al actualizar la cantidad');
+        // Recargar para sincronizar
+        this.cargarCarrito();
       }
     });
   }
@@ -127,7 +130,8 @@ export class CarritoClienteComponent implements OnInit {
     this.productoService.removeCartItem(this.dni, payload).subscribe({
       next: (response) => {
         if (response && response.success) {
-          this.items = response.carrito?.items || [];
+          // Forzar actualización limpia del estado
+          this.items = [...(response.carrito?.items || [])];
           this.total = response.carrito?.total || 0;
           this.globalService.setCartTotal(this.total);
         }
@@ -138,6 +142,8 @@ export class CarritoClienteComponent implements OnInit {
         console.error('Error al eliminar item:', error);
         this.eliminando = false;
         this.cancelarEliminacion();
+        // Recargar el carrito para sincronizar
+        this.cargarCarrito();
       }
     });
   }
@@ -164,29 +170,49 @@ export class CarritoClienteComponent implements OnInit {
 
     this.vaciando = true;
     const itemsActuales = [...this.items];
-    const eliminaciones = itemsActuales.map(item => {
-      const payload = {
-        productId: item.productId || null,
-        nombre: item.nombre
-      };
-      return firstValueFrom(this.productoService.removeCartItem(this.dni, payload));
-    });
+    
+    // Eliminar items secuencialmente para evitar race conditions
+    this.eliminarItemsSecuencialmente(itemsActuales, 0);
+  }
 
-    Promise.all(eliminaciones)
-      .then(() => {
-        this.items = [];
-        this.total = 0;
-        this.globalService.setCartTotal(0);
-      })
-      .catch(error => {
-        console.error('Error al vaciar carrito:', error);
-        alert('Error al vaciar el carrito');
-        this.cargarCarrito(); // Recargar para sincronizar
-      })
-      .finally(() => {
+  private eliminarItemsSecuencialmente(items: CartItem[], index: number): void {
+    if (index >= items.length) {
+      // Todos los items fueron eliminados
+      this.items = [];
+      this.total = 0;
+      this.globalService.setCartTotal(0);
+      this.vaciando = false;
+      this.confirmacionVaciarVisible = false;
+      // Recargar para asegurar sincronización
+      this.cargarCarrito();
+      return;
+    }
+
+    const item = items[index];
+    const payload = {
+      productId: item.productId || null,
+      nombre: item.nombre
+    };
+
+    this.productoService.removeCartItem(this.dni, payload).subscribe({
+      next: (response) => {
+        if (response && response.success) {
+          // Actualizar el estado con la respuesta del servidor
+          this.items = [...(response.carrito?.items || [])];
+          this.total = response.carrito?.total || 0;
+          this.globalService.setCartTotal(this.total);
+        }
+        // Continuar con el siguiente item
+        this.eliminarItemsSecuencialmente(items, index + 1);
+      },
+      error: (error) => {
+        console.error('Error al eliminar item durante vaciado:', error);
+        // Intentar recargar el carrito y terminar
+        this.cargarCarrito();
         this.vaciando = false;
         this.confirmacionVaciarVisible = false;
-      });
+      }
+    });
   }
 
   irAPago(): void {

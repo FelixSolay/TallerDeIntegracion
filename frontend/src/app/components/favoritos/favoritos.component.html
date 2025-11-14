@@ -76,7 +76,7 @@
                     class="orden-select"
                     [(ngModel)]="ordenSeleccionado"
                     (change)="onOrdenChange()">
-                    <option value="relevancia">Más relevantes (descuentos)</option>
+                    <option value="relevancia">Más relevantes</option>
                     <option value="nombre-asc">Nombre A → Z</option>
                     <option value="nombre-desc">Nombre Z → A</option>
                     <option value="precio-asc">Precio menor a mayor</option>
@@ -123,15 +123,35 @@
             </div>
 
             <div class="producto-acciones">
-                <div class="cantidad-selector">
-                    <button class="btn-cantidad" (click)="decrementarCantidad(producto)" [disabled]="producto.cantidad <= 1">−</button>
-                    <span class="cantidad-display">{{ producto.cantidad }}</span>
-                    <button class="btn-cantidad" (click)="incrementarCantidad(producto)" [disabled]="producto.stock !== undefined && producto.cantidad >= producto.stock">+</button>
-                </div>
                 <div class="botones-compra">
-                    <button class="btn-agregar-carrito" (click)="agregarAlCarrito(producto)" [disabled]="producto.stock === 0">
+                    <!-- Mostrar botón "Agregar" solo si NO está en el carrito -->
+                    <button 
+                        *ngIf="!producto.cantidadEnCarrito || producto.cantidadEnCarrito === 0"
+                        class="btn-agregar-carrito" 
+                        (click)="agregarAlCarrito(producto)" 
+                        [disabled]="producto.stock === 0">
                         🛒 Agregar al carrito
                     </button>
+                    
+                    <!-- Mostrar controles del carrito si ya está agregado -->
+                    <div 
+                        *ngIf="producto.cantidadEnCarrito && producto.cantidadEnCarrito > 0"
+                        class="cantidad-carrito-inline">
+                        <button 
+                            class="btn-cantidad-carrito" 
+                            (click)="decrementarEnCarrito(producto)"
+                            [disabled]="producto.cantidadEnCarrito <= 0">
+                            −
+                        </button>
+                        <span class="cantidad-en-carrito">{{producto.cantidadEnCarrito}}</span>
+                        <button 
+                            class="btn-cantidad-carrito" 
+                            (click)="incrementarEnCarrito(producto)"
+                            [disabled]="producto.stock !== undefined && producto.cantidadEnCarrito >= producto.stock">
+                            +
+                        </button>
+                    </div>
+
                     <button 
                         class="btn-favorito btn-remover-favorito"
                         type="button"

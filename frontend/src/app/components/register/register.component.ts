@@ -12,7 +12,7 @@ import { GlobalService } from '../../services/global.service';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ RouterOutlet, ReactiveFormsModule, ButtonComponent, LoginPopupComponent, ErrorPopupComponent, CommonModule ],
+  imports: [ ReactiveFormsModule, ButtonComponent, LoginPopupComponent, ErrorPopupComponent, CommonModule ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css'
 })

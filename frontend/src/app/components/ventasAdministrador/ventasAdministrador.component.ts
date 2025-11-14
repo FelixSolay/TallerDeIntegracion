@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminPedidosService, Pedido, PedidosResponse } from '../../services/admin-pedidos.service';
 import { GlobalService } from '../../services/global.service';
 import { ReportesService } from '../../services/reportes.service';
+import { ConfirmPopupComponent } from '../confirmPopup/confirmPopup.component';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -12,7 +13,7 @@ type ReportPanel = 'top' | 'categoria' | 'periodo' | null;
 @Component({
   selector: 'app-ventas-administrador',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmPopupComponent],
   templateUrl: './ventasAdministrador.component.html',
   styleUrl: './ventasAdministrador.component.css'
 })
@@ -21,10 +22,17 @@ export class VentasAdministradorComponent implements OnInit {
   cargando = true;
   error = '';
   filtroEstado: '' | 'pendiente' | 'entregado' | 'cancelado' = '';
+  filtroPedidoId = '';
   filtroDni = '';
   filtroFechaDesde = '';
   filtroFechaHasta = '';
   pedidoDetalle: Pedido | null = null;
+  
+  // Popup de confirmación
+  mostrarConfirmacion = false;
+  confirmacionTitulo = '';
+  confirmacionMensaje = '';
+  confirmacionAccion: (() => void) | null = null;
   reporteProcesando = false;
   panelActivo: ReportPanel = null;
   topForm = {
@@ -78,7 +86,17 @@ export class VentasAdministradorComponent implements OnInit {
 
     this.adminPedidos.listarPedidos(filtros).subscribe({
       next: (resp: PedidosResponse) => {
-        this.pedidos = (resp.pedidos || []).sort((a, b) => {
+        let pedidosFiltrados = resp.pedidos || [];
+        
+        // Filtrar por número de pedido si existe
+        if (this.filtroPedidoId.trim()) {
+          const idBusqueda = this.filtroPedidoId.trim().toLowerCase();
+          pedidosFiltrados = pedidosFiltrados.filter(p => 
+            p._id.toLowerCase().includes(idBusqueda)
+          );
+        }
+        
+        this.pedidos = pedidosFiltrados.sort((a, b) => {
           const da = a.creadoEl ? new Date(a.creadoEl).getTime() : 0;
           const db = b.creadoEl ? new Date(b.creadoEl).getTime() : 0;
           return db - da;
@@ -95,6 +113,7 @@ export class VentasAdministradorComponent implements OnInit {
 
   limpiarFiltros(): void {
     this.filtroEstado = '';
+    this.filtroPedidoId = '';
     this.filtroDni = '';
     this.filtroFechaDesde = '';
     this.filtroFechaHasta = '';
@@ -102,34 +121,59 @@ export class VentasAdministradorComponent implements OnInit {
   }
 
   despachar(p: Pedido): void {
-    if (!confirm(`¿Marcar el pedido de ${p.dni} como despachado/entregado?`)) return;
-    this.adminPedidos.despacharPedido(p._id).subscribe({
-      next: (resp) => {
-        if (resp.success && resp.pedido) {
-          p.estado = 'entregado';
-          p.fechaEntrega = new Date().toISOString();
+    this.confirmacionTitulo = 'Confirmar despacho';
+    this.confirmacionMensaje = `¿Marcar el pedido de ${p.dni} como despachado/entregado?`;
+    this.confirmacionAccion = () => {
+      this.adminPedidos.despacharPedido(p._id).subscribe({
+        next: (resp) => {
+          if (resp.success && resp.pedido) {
+            p.estado = 'entregado';
+            p.fechaEntrega = new Date().toISOString();
+          }
+          this.cerrarConfirmacion();
+        },
+        error: (err) => {
+          console.error('Error al despachar pedido:', err);
+          alert('No se pudo despachar el pedido.');
+          this.cerrarConfirmacion();
         }
-      },
-      error: (err) => {
-        console.error('Error al despachar pedido:', err);
-        alert('No se pudo despachar el pedido.');
-      }
-    });
+      });
+    };
+    this.mostrarConfirmacion = true;
   }
 
   cancelar(p: Pedido): void {
-    if (!confirm(`¿Cancelar el pedido de ${p.dni}? Se reembolsará el saldo al cliente.`)) return;
-    this.adminPedidos.cancelarPedido(p._id).subscribe({
-      next: (resp) => {
-        if (resp.success && resp.pedido) {
-          p.estado = 'cancelado';
+    this.confirmacionTitulo = 'Confirmar cancelación';
+    this.confirmacionMensaje = `¿Cancelar el pedido de ${p.dni}? Se reembolsará el saldo al cliente.`;
+    this.confirmacionAccion = () => {
+      this.adminPedidos.cancelarPedido(p._id).subscribe({
+        next: (resp) => {
+          if (resp.success && resp.pedido) {
+            p.estado = 'cancelado';
+          }
+          this.cerrarConfirmacion();
+        },
+        error: (err) => {
+          console.error('Error al cancelar pedido:', err);
+          alert('No se pudo cancelar el pedido.');
+          this.cerrarConfirmacion();
         }
-      },
-      error: (err) => {
-        console.error('Error al cancelar pedido:', err);
-        alert('No se pudo cancelar el pedido.');
-      }
-    });
+      });
+    };
+    this.mostrarConfirmacion = true;
+  }
+
+  confirmarAccion(): void {
+    if (this.confirmacionAccion) {
+      this.confirmacionAccion();
+    }
+  }
+
+  cerrarConfirmacion(): void {
+    this.mostrarConfirmacion = false;
+    this.confirmacionTitulo = '';
+    this.confirmacionMensaje = '';
+    this.confirmacionAccion = null;
   }
 
   verDetalle(p: Pedido): void {
@@ -189,7 +233,7 @@ export class VentasAdministradorComponent implements OnInit {
           const titulo = `Top ${limite} productos más vendidos`;
           this.exportarPdf(
             titulo,
-            ['Producto', 'Categoría', 'Cant. vendida', 'Ingresos', 'Vendidos (total)', 'Stock actual'],
+            ['Producto', 'Categoría', 'Cant. vendida', 'Ingresos', 'Vendidos histórico', 'Stock actual'],
             cuerpo,
             `reporte-top-productos-${Date.now()}.pdf`
           );

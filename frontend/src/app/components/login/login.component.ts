@@ -22,7 +22,7 @@ interface LoginResponse {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ RouterOutlet, AppComponent, ReactiveFormsModule, ButtonComponent, LoginPopupComponent, CommonModule, ErrorPopupComponent ],
+  imports: [ ReactiveFormsModule, ButtonComponent, LoginPopupComponent, CommonModule, ErrorPopupComponent ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
