@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { GlobalService } from '../../services/global.service';
 import { FavoritosService, FavoritosResponse } from '../../services/favoritos.service';
 import { Producto, ProductoService } from '../../services/producto.service';
@@ -13,18 +14,24 @@ interface FavoritoConCantidad extends Producto {
   esFavorito?: boolean;
 }
 
+type OrdenFavoritos = 'relevancia' | 'nombre-asc' | 'nombre-desc' | 'precio-asc' | 'precio-desc';
+
 @Component({
   selector: 'app-favoritos',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './favoritos.component.html',
   styleUrl: './favoritos.component.css'
 })
 export class FavoritosComponent implements OnInit {
   favoritos: FavoritoConCantidad[] = [];
+  favoritosOrdenados: FavoritoConCantidad[] = [];
+  ordenSeleccionado: OrdenFavoritos = 'relevancia';
   cargando = true;
   dniCliente = '';
   errorMensaje = '';
+
+  private promocionesActivas: Map<string, Promocion> = new Map();
 
   constructor(
     private globalService: GlobalService,
@@ -58,10 +65,11 @@ export class FavoritosComponent implements OnInit {
         this.refrescarListado(response);
         this.cargando = false;
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error('Error al obtener favoritos:', error);
         this.errorMensaje = 'Ocurrió un error al obtener tus favoritos.';
         this.favoritos = [];
+        this.favoritosOrdenados = [];
         this.cargando = false;
       }
     });
@@ -97,7 +105,7 @@ export class FavoritosComponent implements OnInit {
           console.warn('No se pudo agregar el producto al carrito.');
         }
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error('Error al agregar al carrito desde favoritos:', error);
       }
     });
@@ -116,7 +124,7 @@ export class FavoritosComponent implements OnInit {
           console.warn('No se pudo eliminar el producto de favoritos.');
         }
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error('Error al eliminar favorito:', error);
       }
     });
@@ -155,9 +163,14 @@ export class FavoritosComponent implements OnInit {
     return producto.precio;
   }
 
+  onOrdenChange(): void {
+    this.aplicarOrdenamiento();
+  }
+
   private refrescarListado(response: FavoritosResponse): void {
     if (!response.favoritos || response.favoritos.length === 0) {
       this.favoritos = [];
+      this.favoritosOrdenados = [];
       return;
     }
 
@@ -194,6 +207,7 @@ export class FavoritosComponent implements OnInit {
 
   private aplicarPromocionesAFavoritos(): void {
     if (!this.favoritos.length) {
+      this.favoritosOrdenados = [];
       return;
     }
 
@@ -206,7 +220,52 @@ export class FavoritosComponent implements OnInit {
         precioVigente
       };
     });
+    this.aplicarOrdenamiento();
   }
 
-  private promocionesActivas: Map<string, Promocion> = new Map();
+  private aplicarOrdenamiento(): void {
+    if (!this.favoritos.length) {
+      this.favoritosOrdenados = [];
+      return;
+    }
+
+    this.favoritosOrdenados = [...this.favoritos].sort((a, b) => this.compararFavoritos(a, b));
+  }
+
+  private compararFavoritos(a: FavoritoConCantidad, b: FavoritoConCantidad): number {
+    switch (this.ordenSeleccionado) {
+      case 'nombre-asc':
+        return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+      case 'nombre-desc':
+        return b.nombre.localeCompare(a.nombre, 'es', { sensitivity: 'base' });
+      case 'precio-asc':
+        return a.precioVigente - b.precioVigente;
+      case 'precio-desc':
+        return b.precioVigente - a.precioVigente;
+      case 'relevancia':
+      default:
+        return this.compararPorRelevancia(a, b);
+    }
+  }
+
+  private compararPorRelevancia(a: FavoritoConCantidad, b: FavoritoConCantidad): number {
+    const ahorroA = this.calcularAhorro(a);
+    const ahorroB = this.calcularAhorro(b);
+
+    if (ahorroA !== ahorroB) {
+      return ahorroB - ahorroA;
+    }
+
+    if (!!a.promocion !== !!b.promocion) {
+      return a.promocion ? -1 : 1;
+    }
+
+    return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+  }
+
+  private calcularAhorro(producto: FavoritoConCantidad): number {
+    const original = this.obtenerPrecioOriginal(producto);
+    const ahorro = original - producto.precioVigente;
+    return ahorro > 0 ? ahorro : 0;
+  }
 }

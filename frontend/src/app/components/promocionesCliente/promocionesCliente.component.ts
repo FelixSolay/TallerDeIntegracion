@@ -16,6 +16,8 @@ interface PromocionCardItem {
   precioVigente: number;
 }
 
+type OrdenPromos = 'relevancia' | 'nombre-asc' | 'nombre-desc' | 'precio-asc' | 'precio-desc';
+
 @Component({
   selector: 'app-promociones-cliente',
   standalone: true,
@@ -25,9 +27,11 @@ interface PromocionCardItem {
 })
 export class PromocionesClienteComponent implements OnInit, OnDestroy {
   promociones: PromocionCardItem[] = [];
+  promocionesOrdenadas: PromocionCardItem[] = [];
   cargando = true;
   error = '';
   dniCliente = '';
+  ordenSeleccionado: OrdenPromos = 'relevancia';
 
   private favoritosIds: Set<string> = new Set();
   private favoritosSub?: Subscription;
@@ -81,6 +85,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
         this.promocionesBase = resp.promociones ?? [];
         if (this.promocionesBase.length === 0) {
           this.promociones = [];
+          this.promocionesOrdenadas = [];
           this.cargando = false;
           return;
         }
@@ -140,6 +145,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
     }
 
     this.promociones = tarjetas;
+    this.aplicarOrdenamiento();
   }
 
   private crearProductoFallback(promo: Promocion): Producto | null {
@@ -282,5 +288,56 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
       const id = item.producto._id ?? '';
       item.esFavorito = id !== '' && this.favoritosIds.has(id);
     });
+    this.aplicarOrdenamiento();
+  }
+
+  onOrdenChange(): void {
+    this.aplicarOrdenamiento();
+  }
+
+  private aplicarOrdenamiento(): void {
+    if (!this.promociones.length) {
+      this.promocionesOrdenadas = [];
+      return;
+    }
+
+    this.promocionesOrdenadas = [...this.promociones].sort((a, b) => this.compararPromociones(a, b));
+  }
+
+  private compararPromociones(a: PromocionCardItem, b: PromocionCardItem): number {
+    switch (this.ordenSeleccionado) {
+      case 'nombre-asc':
+        return a.producto.nombre.localeCompare(b.producto.nombre, 'es', { sensitivity: 'base' });
+      case 'nombre-desc':
+        return b.producto.nombre.localeCompare(a.producto.nombre, 'es', { sensitivity: 'base' });
+      case 'precio-asc':
+        return a.precioVigente - b.precioVigente;
+      case 'precio-desc':
+        return b.precioVigente - a.precioVigente;
+      case 'relevancia':
+      default:
+        return this.compararPorRelevancia(a, b);
+    }
+  }
+
+  private compararPorRelevancia(a: PromocionCardItem, b: PromocionCardItem): number {
+    const ahorroA = this.calcularAhorro(a);
+    const ahorroB = this.calcularAhorro(b);
+
+    if (ahorroA !== ahorroB) {
+      return ahorroB - ahorroA;
+    }
+
+    if (!!a.promocion !== !!b.promocion) {
+      return a.promocion ? -1 : 1;
+    }
+
+    return a.producto.nombre.localeCompare(b.producto.nombre, 'es', { sensitivity: 'base' });
+  }
+
+  private calcularAhorro(item: PromocionCardItem): number {
+    const original = this.obtenerPrecioOriginal(item);
+    const ahorro = original - item.precioVigente;
+    return ahorro > 0 ? ahorro : 0;
   }
 }

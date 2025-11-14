@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProductoService } from '../../services/producto.service';
 import { GlobalService } from '../../services/global.service';
+import { firstValueFrom } from 'rxjs';
 
 interface CartItem {
   productId?: string;
@@ -27,6 +28,8 @@ export class CarritoClienteComponent implements OnInit {
   confirmacionVisible = false;
   itemPendienteEliminar: CartItem | null = null;
   eliminando = false;
+  confirmacionVaciarVisible = false;
+  vaciando = false;
 
   constructor(
     private productoService: ProductoService,
@@ -140,29 +143,50 @@ export class CarritoClienteComponent implements OnInit {
   }
 
   vaciarCarrito(): void {
-    if (!confirm('¿Estás seguro de que deseas vaciar el carrito?')) {
+    if (this.items.length === 0 || this.vaciando) {
+      return;
+    }
+    this.confirmacionVaciarVisible = true;
+  }
+
+  cancelarVaciadoCarrito(): void {
+    if (this.vaciando) {
+      return;
+    }
+    this.confirmacionVaciarVisible = false;
+  }
+
+  confirmarVaciadoCarrito(): void {
+    if (this.items.length === 0 || this.vaciando) {
+      this.confirmacionVaciarVisible = false;
       return;
     }
 
-    // Eliminar todos los items uno por uno
-    const promises = this.items.map(item => {
+    this.vaciando = true;
+    const itemsActuales = [...this.items];
+    const eliminaciones = itemsActuales.map(item => {
       const payload = {
         productId: item.productId || null,
         nombre: item.nombre
       };
-      return this.productoService.removeCartItem(this.dni, payload).toPromise();
+      return firstValueFrom(this.productoService.removeCartItem(this.dni, payload));
     });
 
-    Promise.all(promises).then(() => {
-      this.items = [];
-      this.total = 0;
-      this.globalService.setCartTotal(0);
-      alert('Carrito vaciado correctamente');
-    }).catch(error => {
-      console.error('Error al vaciar carrito:', error);
-      alert('Error al vaciar el carrito');
-      this.cargarCarrito(); // Recargar para sincronizar
-    });
+    Promise.all(eliminaciones)
+      .then(() => {
+        this.items = [];
+        this.total = 0;
+        this.globalService.setCartTotal(0);
+      })
+      .catch(error => {
+        console.error('Error al vaciar carrito:', error);
+        alert('Error al vaciar el carrito');
+        this.cargarCarrito(); // Recargar para sincronizar
+      })
+      .finally(() => {
+        this.vaciando = false;
+        this.confirmacionVaciarVisible = false;
+      });
   }
 
   irAPago(): void {

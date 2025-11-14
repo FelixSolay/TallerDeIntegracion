@@ -26,6 +26,8 @@ export class PromocionesAdministradorComponent implements OnInit {
     fechaInicio: '',
     fechaFin: ''
   };
+  formMensaje = '';
+  formMensajeTipo: 'error' | 'success' | '' = '';
 
   constructor(
     private promoService: PromocionService,
@@ -69,16 +71,17 @@ export class PromocionesAdministradorComponent implements OnInit {
   }
 
   crearPromocion(): void {
+    this.resetFormMensaje();
     if (!this.form.productId || !this.form.fechaInicio || !this.form.fechaFin) {
-      alert('Completá producto, fecha de inicio y fecha de fin');
+      this.setFormMensaje('error', 'Completá producto, fecha de inicio y fecha de fin.');
       return;
     }
     if (this.form.tipo === 'porcentaje' && (this.form.valor < 0 || this.form.valor > 100)) {
-      alert('El porcentaje debe ser entre 0 y 100');
+      this.setFormMensaje('error', 'El porcentaje debe ser entre 0 y 100.');
       return;
     }
     if (this.form.tipo === 'monto' && this.form.valor < 0) {
-      alert('El monto no puede ser negativo');
+      this.setFormMensaje('error', 'El monto no puede ser negativo.');
       return;
     }
 
@@ -92,13 +95,13 @@ export class PromocionesAdministradorComponent implements OnInit {
       next: (resp) => {
         if (resp.success && resp.promocion) {
           this.promociones.unshift(resp.promocion);
-          alert('Promoción creada');
           this.resetForm();
+          this.setFormMensaje('success', 'Promoción creada correctamente.');
         }
       },
       error: (err) => {
         console.error('Error creando promoción:', err);
-        alert('No se pudo crear la promoción');
+        this.setFormMensaje('error', 'No se pudo crear la promoción. Intentá nuevamente.');
       }
     });
   }
@@ -111,6 +114,7 @@ export class PromocionesAdministradorComponent implements OnInit {
       fechaInicio: '',
       fechaFin: ''
     };
+    this.resetFormMensaje();
   }
 
   guardarCambios(p: Promocion): void {
@@ -186,5 +190,15 @@ export class PromocionesAdministradorComponent implements OnInit {
   onFechaChange(p: Promocion, field: 'fechaInicio' | 'fechaFin', value: string): void {
     // Guardamos como string AAAA-MM-DD (el backend puede parsearlo como Date)
     (p as any)[field] = value;
+  }
+
+  private setFormMensaje(tipo: 'error' | 'success', mensaje: string): void {
+    this.formMensajeTipo = tipo;
+    this.formMensaje = mensaje;
+  }
+
+  resetFormMensaje(): void {
+    this.formMensaje = '';
+    this.formMensajeTipo = '';
   }
 }

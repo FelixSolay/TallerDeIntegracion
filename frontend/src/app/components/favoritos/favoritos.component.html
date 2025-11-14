@@ -18,8 +18,32 @@
         <a routerLink="/productos" class="btn-primary">Descubrir productos</a>
     </div>
 
-    <div *ngIf="!cargando && favoritos.length > 0" class="productos-grid favoritos-grid">
-        <div *ngFor="let producto of favoritos" class="producto-card">
+    <div *ngIf="!cargando && favoritosOrdenados.length > 0" class="favoritos-controles">
+        <label for="orden-favoritos">Ordenar por</label>
+        <select
+            id="orden-favoritos"
+            class="filtro-select"
+            [(ngModel)]="ordenSeleccionado"
+            (change)="onOrdenChange()">
+            <option value="relevancia">Más relevantes (descuentos)</option>
+            <option value="nombre-asc">Nombre A → Z</option>
+            <option value="nombre-desc">Nombre Z → A</option>
+            <option value="precio-asc">Precio menor a mayor</option>
+            <option value="precio-desc">Precio mayor a menor</option>
+        </select>
+        <span class="orden-info">
+            Orden actual: {{
+                ordenSeleccionado === 'relevancia' ? 'Más relevantes' :
+                ordenSeleccionado === 'nombre-asc' ? 'Nombre A → Z' :
+                ordenSeleccionado === 'nombre-desc' ? 'Nombre Z → A' :
+                ordenSeleccionado === 'precio-asc' ? 'Precio menor a mayor' :
+                'Precio mayor a menor'
+            }}
+        </span>
+    </div>
+
+    <div *ngIf="!cargando && favoritosOrdenados.length > 0" class="productos-grid favoritos-grid">
+        <div *ngFor="let producto of favoritosOrdenados" class="producto-card">
             <div class="producto-imagen-container">
                 <img *ngIf="producto.imagen" [src]="producto.imagen" [alt]="producto.nombre" class="producto-imagen">
                 <div *ngIf="!producto.imagen" class="producto-sin-imagen">

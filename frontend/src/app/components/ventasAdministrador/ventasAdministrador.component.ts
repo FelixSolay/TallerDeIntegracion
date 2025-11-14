@@ -7,6 +7,8 @@ import { ReportesService } from '../../services/reportes.service';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+type ReportPanel = 'top' | 'categoria' | 'periodo' | null;
+
 @Component({
   selector: 'app-ventas-administrador',
   standalone: true,
@@ -24,6 +26,23 @@ export class VentasAdministradorComponent implements OnInit {
   filtroFechaHasta = '';
   pedidoDetalle: Pedido | null = null;
   reporteProcesando = false;
+  panelActivo: ReportPanel = null;
+  topForm = {
+    limite: 5,
+    fechaDesde: '',
+    fechaHasta: ''
+  };
+  categoriaForm = {
+    fechaDesde: '',
+    fechaHasta: ''
+  };
+  periodoForm = {
+    fechaDesde: '',
+    fechaHasta: ''
+  };
+  reporteMensaje = '';
+  reporteMensajeTipo: 'info' | 'error' | 'success' | '' = '';
+  panelMensaje: ReportPanel = null;
 
   constructor(
     private adminPedidos: AdminPedidosService,
@@ -122,27 +141,28 @@ export class VentasAdministradorComponent implements OnInit {
   }
 
   generarReporteTopProductos(): void {
-    const limiteInput = window.prompt('¿Cuántos productos querés incluir en el reporte?', '5');
-    if (limiteInput === null) {
-      return;
-    }
+    this.resetMensaje();
 
-    const limite = parseInt(limiteInput, 10);
+    const limite = Number(this.topForm.limite);
     if (!Number.isFinite(limite) || limite <= 0) {
-      alert('Ingresá un número válido de productos.');
+      this.mostrarMensaje('error', 'Ingresá una cantidad válida de productos.', 'top');
       return;
     }
 
-    const fechaInicio = this.solicitarFecha('Fecha de inicio (AAAA-MM-DD) - dejar vacío para todas las fechas:');
-    if (fechaInicio === undefined) {
-      return;
-    }
-    const fechaFin = this.solicitarFecha('Fecha de fin (AAAA-MM-DD) - dejar vacío para todas las fechas:');
-    if (fechaFin === undefined) {
+    const fechaInicio = this.normalizarFecha(this.topForm.fechaDesde);
+    const fechaFin = this.normalizarFecha(this.topForm.fechaHasta);
+
+    if (this.topForm.fechaDesde && !fechaInicio) {
+      this.mostrarMensaje('error', 'La fecha desde debe tener formato dd/mm/aaaa.', 'top');
       return;
     }
 
-    if (!this.validarRangoFechas(fechaInicio, fechaFin)) {
+    if (this.topForm.fechaHasta && !fechaFin) {
+      this.mostrarMensaje('error', 'La fecha hasta debe tener formato dd/mm/aaaa.', 'top');
+      return;
+    }
+
+    if (!this.validarRangoFechas(fechaInicio, fechaFin, false, 'top')) {
       return;
     }
 
@@ -153,7 +173,7 @@ export class VentasAdministradorComponent implements OnInit {
         next: (resp) => {
           this.reporteProcesando = false;
           if (!resp.success || !resp.data || resp.data.length === 0) {
-            alert('No se encontraron ventas para generar el reporte.');
+            this.mostrarMensaje('info', 'No se encontraron ventas para generar el reporte.', 'top');
             return;
           }
 
@@ -173,26 +193,33 @@ export class VentasAdministradorComponent implements OnInit {
             cuerpo,
             `reporte-top-productos-${Date.now()}.pdf`
           );
+          this.mostrarMensaje('success', 'Reporte de productos generado con éxito.', 'top');
         },
         error: (err) => {
           console.error('Error obteniendo reporte top productos:', err);
           this.reporteProcesando = false;
-          alert('Ocurrió un error al generar el reporte de productos más vendidos.');
+          this.mostrarMensaje('error', 'Ocurrió un error al generar el reporte de productos más vendidos.', 'top');
         }
       });
   }
 
   generarReportePorCategoria(): void {
-    const fechaInicio = this.solicitarFecha('Fecha de inicio (AAAA-MM-DD) - dejar vacío para todas las fechas:');
-    if (fechaInicio === undefined) {
-      return;
-    }
-    const fechaFin = this.solicitarFecha('Fecha de fin (AAAA-MM-DD) - dejar vacío para todas las fechas:');
-    if (fechaFin === undefined) {
+    this.resetMensaje();
+
+    const fechaInicio = this.normalizarFecha(this.categoriaForm.fechaDesde);
+    const fechaFin = this.normalizarFecha(this.categoriaForm.fechaHasta);
+
+    if (this.categoriaForm.fechaDesde && !fechaInicio) {
+      this.mostrarMensaje('error', 'La fecha desde debe tener formato dd/mm/aaaa.', 'categoria');
       return;
     }
 
-    if (!this.validarRangoFechas(fechaInicio, fechaFin)) {
+    if (this.categoriaForm.fechaHasta && !fechaFin) {
+      this.mostrarMensaje('error', 'La fecha hasta debe tener formato dd/mm/aaaa.', 'categoria');
+      return;
+    }
+
+    if (!this.validarRangoFechas(fechaInicio, fechaFin, false, 'categoria')) {
       return;
     }
 
@@ -203,7 +230,7 @@ export class VentasAdministradorComponent implements OnInit {
         next: (resp) => {
           this.reporteProcesando = false;
           if (!resp.success || !resp.data || resp.data.length === 0) {
-            alert('No se registraron ventas por categoría en el período seleccionado.');
+            this.mostrarMensaje('info', 'No se registraron ventas por categoría en el período seleccionado.', 'categoria');
             return;
           }
 
@@ -219,26 +246,38 @@ export class VentasAdministradorComponent implements OnInit {
             cuerpo,
             `reporte-por-categoria-${Date.now()}.pdf`
           );
+          this.mostrarMensaje('success', 'Reporte por categoría generado con éxito.', 'categoria');
         },
         error: (err) => {
           console.error('Error obteniendo reporte por categoría:', err);
           this.reporteProcesando = false;
-          alert('Ocurrió un error al generar el reporte de ventas por categoría.');
+          this.mostrarMensaje('error', 'Ocurrió un error al generar el reporte de ventas por categoría.', 'categoria');
         }
       });
   }
 
   generarReportePorPeriodo(): void {
-    const fechaInicio = this.solicitarFecha('Fecha de inicio (AAAA-MM-DD)', true);
-    if (fechaInicio === undefined) {
-      return;
-    }
-    const fechaFin = this.solicitarFecha('Fecha de fin (AAAA-MM-DD)', true);
-    if (fechaFin === undefined) {
+    this.resetMensaje();
+
+    const fechaInicio = this.normalizarFecha(this.periodoForm.fechaDesde);
+    const fechaFin = this.normalizarFecha(this.periodoForm.fechaHasta);
+
+    if (!this.periodoForm.fechaDesde) {
+      this.mostrarMensaje('error', 'Seleccioná la fecha de inicio.', 'periodo');
       return;
     }
 
-    if (!this.validarRangoFechas(fechaInicio, fechaFin, true)) {
+    if (!this.periodoForm.fechaHasta) {
+      this.mostrarMensaje('error', 'Seleccioná la fecha de fin.', 'periodo');
+      return;
+    }
+
+    if (!fechaInicio || !fechaFin) {
+      this.mostrarMensaje('error', 'Usá el formato dd/mm/aaaa o el calendario para elegir las fechas.', 'periodo');
+      return;
+    }
+
+    if (!this.validarRangoFechas(fechaInicio, fechaFin, true, 'periodo')) {
       return;
     }
 
@@ -249,7 +288,7 @@ export class VentasAdministradorComponent implements OnInit {
         next: (resp) => {
           this.reporteProcesando = false;
           if (!resp.success || !resp.data || resp.data.length === 0) {
-            alert('No se encontraron ventas en el período indicado.');
+            this.mostrarMensaje('info', 'No se encontraron ventas en el período indicado.', 'periodo');
             return;
           }
 
@@ -275,50 +314,40 @@ export class VentasAdministradorComponent implements OnInit {
             `reporte-por-periodo-${Date.now()}.pdf`,
             resumenLineas
           );
+          this.mostrarMensaje('success', 'Reporte por periodo generado con éxito.', 'periodo');
         },
         error: (err) => {
           console.error('Error obteniendo reporte por periodo:', err);
           this.reporteProcesando = false;
-          alert('Ocurrió un error al generar el reporte por periodo.');
+          this.mostrarMensaje('error', 'Ocurrió un error al generar el reporte por periodo.', 'periodo');
         }
       });
   }
-
-  private solicitarFecha(mensaje: string, esObligatoria = false): string | null | undefined {
-    const valor = window.prompt(mensaje);
-    if (valor === null) {
-      return undefined;
-    }
-
-    const trimmed = valor.trim();
-    if (!trimmed) {
-      if (esObligatoria) {
-        alert('La fecha es obligatoria.');
-        return undefined;
-      }
-      return null;
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      alert('Formato de fecha inválido. Usa AAAA-MM-DD.');
-      return undefined;
-    }
-
-    return trimmed;
+  togglePanel(panel: ReportPanel): void {
+    this.panelActivo = this.panelActivo === panel ? null : panel;
+    this.resetMensaje();
   }
 
-  private validarRangoFechas(inicio: string | null, fin: string | null, obligatorio = false): boolean {
+  private validarRangoFechas(
+    inicio: string | null,
+    fin: string | null,
+    obligatorio = false,
+    panel?: ReportPanel
+  ): boolean {
     if (!inicio && !fin) {
+      if (obligatorio) {
+        this.mostrarMensaje('error', 'Necesitás seleccionar ambas fechas.', panel);
+      }
       return !obligatorio;
     }
 
     if (inicio && !fin) {
-      alert('Ingresá también una fecha de fin.');
+      this.mostrarMensaje('error', 'Ingresá también una fecha de fin.', panel);
       return false;
     }
 
     if (!inicio && fin) {
-      alert('Ingresá también una fecha de inicio.');
+      this.mostrarMensaje('error', 'Ingresá también una fecha de inicio.', panel);
       return false;
     }
 
@@ -326,12 +355,46 @@ export class VentasAdministradorComponent implements OnInit {
       const fechaInicio = new Date(inicio);
       const fechaFin = new Date(fin);
       if (fechaFin < fechaInicio) {
-        alert('La fecha fin debe ser igual o posterior a la fecha de inicio.');
+        this.mostrarMensaje('error', 'La fecha fin debe ser igual o posterior a la fecha de inicio.', panel);
         return false;
       }
     }
 
     return true;
+  }
+
+  private normalizarFecha(valor: string): string | null {
+    if (!valor) {
+      return null;
+    }
+
+    const limpio = valor.trim();
+    if (!limpio) {
+      return null;
+    }
+
+    if (/^[\d]{4}-[\d]{2}-[\d]{2}$/.test(limpio)) {
+      return limpio;
+    }
+
+    if (/^[\d]{2}\/[\d]{2}\/[\d]{4}$/.test(limpio)) {
+      const [dia, mes, anio] = limpio.split('/');
+      return `${anio}-${mes}-${dia}`;
+    }
+
+    return null;
+  }
+
+  private mostrarMensaje(tipo: 'info' | 'error' | 'success', mensaje: string, panel: ReportPanel | null = null): void {
+    this.reporteMensaje = mensaje;
+    this.reporteMensajeTipo = tipo;
+    this.panelMensaje = panel;
+  }
+
+  resetMensaje(): void {
+    this.reporteMensaje = '';
+    this.reporteMensajeTipo = '';
+    this.panelMensaje = null;
   }
 
   private exportarPdf(

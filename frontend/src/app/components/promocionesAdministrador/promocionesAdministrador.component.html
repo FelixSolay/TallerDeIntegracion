@@ -36,6 +36,15 @@
       <div class="acciones">
         <button class="btn" (click)="crearPromocion()">Crear promoción</button>
       </div>
+      <div
+        class="form-alert"
+        *ngIf="formMensaje"
+        [class.error]="formMensajeTipo === 'error'"
+        [class.success]="formMensajeTipo === 'success'"
+      >
+        <span>{{ formMensaje }}</span>
+        <button type="button" (click)="resetFormMensaje()">Cerrar</button>
+      </div>
     </div>
   </div>
 

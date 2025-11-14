@@ -86,6 +86,36 @@
 	gap: 8px;
 }
 
+.form-alert {
+	grid-column: 1 / -1;
+	margin-top: 6px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	font-size: 0.9rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+}
+
+.form-alert button {
+	background: transparent;
+	border: none;
+	color: inherit;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.form-alert.error {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+.form-alert.success {
+	background: #d4edda;
+	color: #155724;
+}
+
 .btn {
 	background: #47B20E;
 	color: #fff;

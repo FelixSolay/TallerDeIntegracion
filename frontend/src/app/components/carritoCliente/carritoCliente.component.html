@@ -139,4 +139,38 @@
       </div>
     </div>
   </div>
+
+  <div
+    class="confirm-overlay"
+    *ngIf="confirmacionVaciarVisible"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-clear-title"
+    aria-describedby="confirm-clear-text"
+  >
+    <div class="confirm-dialog">
+      <h3 id="confirm-clear-title">¿Deseás vaciar todo el carrito?</h3>
+      <p id="confirm-clear-text">
+        Todos los productos se eliminarán de forma permanente.
+      </p>
+      <div class="confirm-actions">
+        <button
+          class="btn-confirm"
+          type="button"
+          (click)="confirmarVaciadoCarrito()"
+          [disabled]="vaciando"
+        >
+          Sí, vaciar
+        </button>
+        <button
+          class="btn-cancel"
+          type="button"
+          (click)="cancelarVaciadoCarrito()"
+          [disabled]="vaciando"
+        >
+          No, cancelar
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

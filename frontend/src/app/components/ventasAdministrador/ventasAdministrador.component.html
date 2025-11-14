@@ -68,12 +68,163 @@
 
   <div class="reportes">
     <h2>Reportes de ventas</h2>
-    <p>Generá reportes en PDF según la información que necesitás consultar.</p>
-    <div class="reportes-botones">
-      <button class="btn info" (click)="generarReporteTopProductos()" [disabled]="reporteProcesando">Top productos más vendidos</button>
-      <button class="btn info" (click)="generarReportePorCategoria()" [disabled]="reporteProcesando">Ventas por categoría</button>
-      <button class="btn info" (click)="generarReportePorPeriodo()" [disabled]="reporteProcesando">Reporte por periodo</button>
-    </div>
+    <p>Configurá el periodo con el calendario (formato dd/mm/aaaa) y generá el PDF desde cada panel.</p>
+
+      <div class="reportes-row">
+    <section class="reporte-panel" [class.abierto]="panelActivo==='top'">
+      <button class="reporte-header" type="button" (click)="togglePanel('top')">
+        <div>
+          <strong>Top productos más vendidos</strong>
+          <p>Elegí la cantidad y el periodo para listar los productos destacados.</p>
+        </div>
+        <span class="chevron" [class.abierto]="panelActivo==='top'">⌄</span>
+      </button>
+      <div class="reporte-content" *ngIf="panelActivo==='top'">
+        <form (ngSubmit)="generarReporteTopProductos()" novalidate>
+          <div class="form-grid">
+            <label>
+              Cantidad de productos
+              <input type="number" min="1" [(ngModel)]="topForm.limite" name="topLimite" required />
+            </label>
+            <label>
+              Desde
+              <input
+                type="date"
+                [(ngModel)]="topForm.fechaDesde"
+                name="topDesde"
+                class="date-input"
+                aria-describedby="top-formato"
+              />
+            </label>
+            <label>
+              Hasta
+              <input
+                type="date"
+                [(ngModel)]="topForm.fechaHasta"
+                name="topHasta"
+                class="date-input"
+                aria-describedby="top-formato"
+              />
+            </label>
+          </div>
+          <p id="top-formato" class="campo-ayuda">Dejá las fechas vacías para incluir todo el historial.</p>
+          <button class="btn info" type="submit" [disabled]="reporteProcesando">
+            {{ reporteProcesando ? 'Generando...' : 'Generar PDF' }}
+          </button>
+          <div
+            class="mensaje-panel"
+            *ngIf="reporteMensaje && panelMensaje==='top'"
+            [class.error]="reporteMensajeTipo==='error'"
+            [class.info]="reporteMensajeTipo==='info'"
+            [class.success]="reporteMensajeTipo==='success'"
+          >
+            <span>{{ reporteMensaje }}</span>
+            <button type="button" (click)="resetMensaje()">Cerrar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="reporte-panel" [class.abierto]="panelActivo==='categoria'">
+      <button class="reporte-header" type="button" (click)="togglePanel('categoria')">
+        <div>
+          <strong>Ventas por categoría</strong>
+          <p>Analizá cantidades e ingresos agrupados por categoría.</p>
+        </div>
+        <span class="chevron" [class.abierto]="panelActivo==='categoria'">⌄</span>
+      </button>
+      <div class="reporte-content" *ngIf="panelActivo==='categoria'">
+        <form (ngSubmit)="generarReportePorCategoria()" novalidate>
+          <div class="form-grid">
+            <label>
+              Desde
+              <input
+                type="date"
+                [(ngModel)]="categoriaForm.fechaDesde"
+                name="catDesde"
+                class="date-input"
+                aria-describedby="cat-formato"
+              />
+            </label>
+            <label>
+              Hasta
+              <input
+                type="date"
+                [(ngModel)]="categoriaForm.fechaHasta"
+                name="catHasta"
+                class="date-input"
+                aria-describedby="cat-formato"
+              />
+            </label>
+          </div>
+          <p id="cat-formato" class="campo-ayuda">Si dejás ambos campos vacíos, se incluirán todas las fechas.</p>
+          <button class="btn info" type="submit" [disabled]="reporteProcesando">
+            {{ reporteProcesando ? 'Generando...' : 'Generar PDF' }}
+          </button>
+          <div
+            class="mensaje-panel"
+            *ngIf="reporteMensaje && panelMensaje==='categoria'"
+            [class.error]="reporteMensajeTipo==='error'"
+            [class.info]="reporteMensajeTipo==='info'"
+            [class.success]="reporteMensajeTipo==='success'"
+          >
+            <span>{{ reporteMensaje }}</span>
+            <button type="button" (click)="resetMensaje()">Cerrar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="reporte-panel" [class.abierto]="panelActivo==='periodo'">
+      <button class="reporte-header" type="button" (click)="togglePanel('periodo')">
+        <div>
+          <strong>Reporte por periodo</strong>
+          <p>Compará pedidos, productos e ingresos día a día.</p>
+        </div>
+        <span class="chevron" [class.abierto]="panelActivo==='periodo'">⌄</span>
+      </button>
+      <div class="reporte-content" *ngIf="panelActivo==='periodo'">
+        <form (ngSubmit)="generarReportePorPeriodo()" novalidate>
+          <div class="form-grid">
+            <label>
+              Desde
+              <input
+                type="date"
+                [(ngModel)]="periodoForm.fechaDesde"
+                name="periodoDesde"
+                class="date-input"
+                required
+              />
+            </label>
+            <label>
+              Hasta
+              <input
+                type="date"
+                [(ngModel)]="periodoForm.fechaHasta"
+                name="periodoHasta"
+                class="date-input"
+                required
+              />
+            </label>
+          </div>
+          <p class="campo-ayuda">Ambas fechas son obligatorias para este reporte.</p>
+          <button class="btn info" type="submit" [disabled]="reporteProcesando">
+            {{ reporteProcesando ? 'Generando...' : 'Generar PDF' }}
+          </button>
+          <div
+            class="mensaje-panel"
+            *ngIf="reporteMensaje && panelMensaje==='periodo'"
+            [class.error]="reporteMensajeTipo==='error'"
+            [class.info]="reporteMensajeTipo==='info'"
+            [class.success]="reporteMensajeTipo==='success'"
+          >
+            <span>{{ reporteMensaje }}</span>
+            <button type="button" (click)="resetMensaje()">Cerrar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+      </div>
   </div>
 
   <!-- Modal Detalle de Pedido -->

@@ -24,17 +24,23 @@
 .filtros label {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
+	text-align: center;
 	font-weight: 600;
 	color: #09008C;
+	gap: 4px;
 }
 
 .filtros select,
 .filtros input {
+	width: 170px;
 	padding: 8px 10px;
+	height: 40px;
 	border: 1px solid #47B20E;
 	border-radius: 8px;
 	background: #D0E8C3;
 	color: #09008C;
+	box-sizing: border-box;
 }
 
 .filtro-acciones {
@@ -247,18 +253,150 @@
 	color: #4a5568;
 }
 
-.reportes-botones {
+.mensaje-panel {
+	margin-top: 10px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	font-size: 0.85rem;
 	display: flex;
-	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: center;
 	gap: 12px;
 }
 
-.reportes-botones .btn {
-	flex: 1 1 220px;
+.mensaje-panel button {
+	background: transparent;
+	border: none;
+	color: inherit;
+	font-size: 0.85rem;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.mensaje-panel.info {
+	background: #d9edf7;
+	color: #0c5460;
+}
+
+.mensaje-panel.error {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+.mensaje-panel.success {
+	background: #d4edda;
+	color: #155724;
+}
+
+.reportes-row {
 	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.reportes-row .reporte-panel {
+	flex: 1 1 100%;
+}
+
+@media (min-width: 768px) {
+	.reportes-row .reporte-panel {
+		flex: 1 1 calc(33.33% - 8px);
+	}
+}
+
+.reporte-panel {
+	border: 1px solid rgba(9, 0, 140, 0.15);
+	border-radius: 12px;
+	margin-bottom: 12px;
+	overflow: hidden;
+	background: #fff;
+	padding: 4px 0;
+}
+
+.reporte-panel.abierto {
+	box-shadow: 0 6px 18px rgba(9, 0, 140, 0.15);
+	flex-basis: 100%;
+	max-width: 100%;
+}
+
+.reporte-panel:not(.abierto) {
+	max-height: 92px;
+}
+
+.reporte-header {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
 	justify-content: center;
 	align-items: center;
+	gap: 4px;
+	padding: 8px 10px;
+	border: none;
+	background: transparent;
 	text-align: center;
+	cursor: pointer;
+}
+
+.reporte-header strong {
+	display: block;
+	color: #09008C;
+	font-size: 0.95rem;
+	margin-bottom: 4px;
+}
+
+.reporte-header p {
+	margin: 0;
+	color: #4a5568;
+	font-size: 0.8rem;
+}
+
+.chevron {
+	font-size: 20px;
+	transition: transform 0.2s ease;
+	margin-top: 4px;
+}
+
+.chevron.abierto {
+	transform: rotate(180deg);
+}
+
+.reporte-content {
+	border-top: 1px solid rgba(9, 0, 140, 0.1);
+	padding: 16px;
+	background: #F8FBF6;
+}
+
+.form-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 14px;
+	margin-bottom: 10px;
+}
+
+.form-grid label {
+	display: flex;
+	flex-direction: column;
+	font-weight: 600;
+	color: #09008C;
+}
+
+.form-grid input {
+	margin-top: 6px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid #47B20E;
+	background: #fff;
+	color: #09008C;
+}
+
+.campo-ayuda {
+	margin: 0 0 16px;
+	color: #4a5568;
+	font-size: 0.9rem;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+	filter: invert(28%) sepia(77%) saturate(566%) hue-rotate(68deg) brightness(92%) contrast(91%);
 }
 
 /* Override celeste blue buttons to brand blue */
@@ -276,11 +414,3 @@
 	background: #47B20E !important;
 	color: #ffffff !important;
 }
-.ventas-container{max-width:1200px;margin:90px auto 20px;padding:0 16px}.ventas-header{background:#E4EFE9;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:16px}.filtros{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.filtros label{display:flex;flex-direction:column;font-weight:600;color:#09008C}.filtros select,.filtros input{padding:8px 10px;border:1px solid #47B20E;border-radius:8px;background:#D0E8C3;color:#09008C}.filtro-acciones{display:flex;gap:10px;align-items:center;align-self:flex-end}.btn{background:#47B20E;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}.btn.secondary{background:#6c757d}.btn.success{background:#198754}.btn.danger{background:#A81B1B}.tabla{width:100%;border-collapse:separate;border-spacing:0;background:#E4EFE9;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)}.tabla th,.tabla td{padding:12px 10px;border-bottom:1px solid #eee;text-align:left}.tabla th{background:#D0E8C3;color:#09008C}.acciones{display:flex;gap:8px}.badge{padding:4px 8px;border-radius:8px;font-weight:700;text-transform:capitalize}.badge.pendiente{background:#fff3cd;color:#856404}.badge.entregado{background:#D0E8C3;color:#155724}.badge.cancelado{background:#f8d7da;color:#721c24}.loading,.error{text-align:center;padding:24px;background:#E4EFE9;border-radius:12px;margin-top:12px}.error{background:#f8d7da;color:#721c24}.btn.info{background:#0d6efd}.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}.modal{background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.2);width:min(900px,92vw);max-height:90vh;display:flex;flex-direction:column}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee}.modal-header h2{margin:0;color:#09008C}.modal-header .close{background:transparent;border:none;font-size:20px;cursor:pointer}.modal-body{padding:16px;overflow:auto}.modal-footer{padding:12px 16px;border-top:1px solid #eee;display:flex;justify-content:flex-end}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.grid label{font-weight:700;color:#09008C}.mt{margin-top:12px}.items-tabla{width:100%;border-collapse:separate;border-spacing:0;margin-top:8px}.items-tabla th,.items-tabla td{padding:8px 10px;border-bottom:1px solid #f0f0f0}.items-tabla th{background:#fafafa}.right{text-align:right}.total{display:flex;justify-content:flex-end;gap:12px;margin-top:10px;font-size:18px}
-.reportes{margin-top:24px;background:#E4EFE9;border-radius:12px;padding:18px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.reportes h2{margin:0 0 6px;color:#09008C}.reportes p{margin:0 0 14px;color:#4a5568}.reportes-botones{display:flex;flex-wrap:wrap;gap:12px}.reportes-botones .btn{flex:1 1 220px;display:flex;justify-content:center;align-items:center;text-align:center}
-/* Override celeste blue buttons to brand blue */
-.btn.info{background:#09008C !important}
-/* Align 'despachar' success button to filter green */
-.btn.success{background:#47B20E !important}
-/* Make delivered badge use same green with white text */
-.badge.entregado{background:#47B20E !important;color:#ffffff !important}

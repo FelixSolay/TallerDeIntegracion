@@ -40,6 +40,49 @@
   margin: 0;
 }
 
+.promos-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background-color: #E4EFE9;
+  border: 1px solid #47B20E;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #09008C;
+}
+
+.promos-controls label {
+  font-weight: 600;
+  color: #47B20E;
+}
+
+.promos-controls .filtro-select {
+  padding: 6px 12px;
+  border: 1px solid #47B20E;
+  border-radius: 8px;
+  background-color: #E4EFE9;
+  color: #09008C;
+  font-size: 13px;
+  min-width: 170px;
+  cursor: pointer;
+}
+
+.promos-controls .filtro-select:focus {
+  outline: none;
+  box-shadow: 0 0 8px rgba(71, 178, 14, 0.18);
+}
+
+.promos-controls .filtro-select option {
+  background-color: #E4EFE9;
+  color: #09008C;
+}
+
+.orden-info {
+  font-weight: 500;
+}
+
 .estado {
   background-color: #E4EFE9;
   border-radius: 12px;

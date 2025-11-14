@@ -4,6 +4,28 @@
     <p class="subtitle">Aprovechá los descuentos vigentes y llevá tus productos favoritos al mejor precio.</p>
   </div>
 
+  <div class="promos-controls" *ngIf="!cargando && !error && promociones.length > 0">
+    <label for="orden-promos">Ordenar por</label>
+    <select 
+      id="orden-promos"
+      class="filtro-select"
+      [(ngModel)]="ordenSeleccionado"
+      (change)="onOrdenChange()">
+      <option value="relevancia">Más relevantes (descuentos)</option>
+      <option value="nombre-asc">Nombre A → Z</option>
+      <option value="nombre-desc">Nombre Z → A</option>
+      <option value="precio-asc">Precio menor a mayor</option>
+      <option value="precio-desc">Precio mayor a menor</option>
+    </select>
+    <span class="orden-info">Orden actual: {{
+      ordenSeleccionado === 'relevancia' ? 'Más relevantes' :
+      ordenSeleccionado === 'nombre-asc' ? 'Nombre A → Z' :
+      ordenSeleccionado === 'nombre-desc' ? 'Nombre Z → A' :
+      ordenSeleccionado === 'precio-asc' ? 'Precio menor a mayor' :
+      'Precio mayor a menor'
+    }}</span>
+  </div>
+
   <div *ngIf="cargando" class="estado estado-loading">
     <p>Cargando promociones...</p>
   </div>
@@ -16,8 +38,8 @@
     <p>No hay promociones activas en este momento. Volvé pronto para descubrir nuevas ofertas.</p>
   </div>
 
-  <div *ngIf="!cargando && !error && promociones.length > 0" class="productos-grid">
-    <div class="producto-card" *ngFor="let item of promociones">
+  <div *ngIf="!cargando && !error && promocionesOrdenadas.length > 0" class="productos-grid">
+    <div class="producto-card" *ngFor="let item of promocionesOrdenadas">
       <div class="producto-imagen-container">
         <img
           *ngIf="item.producto.imagen"
