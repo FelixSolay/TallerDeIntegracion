@@ -6,6 +6,7 @@ import { GlobalService } from '../../services/global.service';
 import { FavoritosService, FavoritosResponse } from '../../services/favoritos.service';
 import { Producto, ProductoService } from '../../services/producto.service';
 import { PromocionService, Promocion, PromocionResponse } from '../../services/promocion.service';
+import { CategoriaService, Categoria, CategoriaResponse } from '../../services/categoria.service';
 
 interface FavoritoConCantidad extends Producto {
   cantidad: number;
@@ -26,10 +27,17 @@ type OrdenFavoritos = 'relevancia' | 'nombre-asc' | 'nombre-desc' | 'precio-asc'
 export class FavoritosComponent implements OnInit {
   favoritos: FavoritoConCantidad[] = [];
   favoritosOrdenados: FavoritoConCantidad[] = [];
+  favoritosFiltrados: FavoritoConCantidad[] = [];
   ordenSeleccionado: OrdenFavoritos = 'relevancia';
+  categoriaSeleccionada = '';
   cargando = true;
+  cargandoCategorias = true;
   dniCliente = '';
   errorMensaje = '';
+
+  categorias: Categoria[] = [];
+  gruposCategorias: Array<{ padre: Categoria; hijos: Array<Categoria & { disabled?: boolean }> }> = [];
+  huerfanos: Categoria[] = [];
 
   private promocionesActivas: Map<string, Promocion> = new Map();
 
@@ -37,7 +45,8 @@ export class FavoritosComponent implements OnInit {
     private globalService: GlobalService,
     private favoritosService: FavoritosService,
     private productoService: ProductoService,
-    private promocionService: PromocionService
+    private promocionService: PromocionService,
+    private categoriaService: CategoriaService
   ) {}
 
   ngOnInit(): void {
@@ -50,6 +59,7 @@ export class FavoritosComponent implements OnInit {
       return;
     }
 
+    this.cargarCategorias();
     this.cargarPromocionesActivas();
     this.cargarFavoritos();
   }
@@ -116,16 +126,23 @@ export class FavoritosComponent implements OnInit {
       return;
     }
 
+    // Eliminación optimista: actualizar UI inmediatamente
+    this.favoritos = this.favoritos.filter(f => f._id !== producto._id);
+    this.aplicarOrdenamiento();
+
+    // Luego hacer la llamada al servidor
     this.favoritosService.eliminarFavorito(this.dniCliente, producto._id).subscribe({
       next: (response: FavoritosResponse) => {
-        if (response.success) {
-          this.refrescarListado(response);
-        } else {
-          console.warn('No se pudo eliminar el producto de favoritos.');
+        if (!response.success) {
+          console.warn('No se pudo eliminar el producto de favoritos en el servidor.');
+          // Recargar desde el servidor si falló
+          this.cargarFavoritos();
         }
       },
       error: (error: unknown) => {
         console.error('Error al eliminar favorito:', error);
+        // Recargar desde el servidor si hubo error
+        this.cargarFavoritos();
       }
     });
   }
@@ -165,6 +182,111 @@ export class FavoritosComponent implements OnInit {
 
   onOrdenChange(): void {
     this.aplicarOrdenamiento();
+  }
+
+  private cargarCategorias(): void {
+    this.cargandoCategorias = true;
+    this.categoriaService.obtenerCategorias().subscribe({
+      next: (resp: CategoriaResponse) => {
+        this.categorias = resp.categorias ?? [];
+        this.organizarCategorias();
+        this.cargandoCategorias = false;
+      },
+      error: (err: unknown) => {
+        console.error('Error al cargar categorías:', err);
+        this.cargandoCategorias = false;
+      }
+    });
+  }
+
+  private organizarCategorias(): void {
+    const nivel0 = this.categorias.filter(c => c.nivel === 0).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const nivel1 = this.categorias.filter(c => c.nivel === 1).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const nivel2 = this.categorias.filter(c => c.nivel === 2).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    // Mapas de hijos por padre
+    const hijos1PorPadre0 = new Map<string, Categoria[]>();
+    for (const h of nivel1) {
+      const padreId = (h.categoriaPadreId as unknown as string) || '';
+      if (!hijos1PorPadre0.has(padreId)) hijos1PorPadre0.set(padreId, []);
+      hijos1PorPadre0.get(padreId)!.push(h);
+    }
+
+    const hijos2PorPadre1 = new Map<string, Categoria[]>();
+    for (const h of nivel2) {
+      const padreId = (h.categoriaPadreId as unknown as string) || '';
+      if (!hijos2PorPadre1.has(padreId)) hijos2PorPadre1.set(padreId, []);
+      hijos2PorPadre1.get(padreId)!.push(h);
+    }
+
+    // Construir grupos jerárquicos (todas las categorías son seleccionables)
+    this.gruposCategorias = [];
+    for (const cat0 of nivel0) {
+      const subcats1 = hijos1PorPadre0.get(cat0._id!) || [];
+      const todosHijos: any[] = [cat0]; // Nivel 0 también es seleccionable
+
+      for (const cat1 of subcats1) {
+        todosHijos.push(cat1); // Nivel 1 seleccionable
+        const subcats2 = hijos2PorPadre1.get(cat1._id!) || [];
+        todosHijos.push(...subcats2); // Nivel 2 seleccionable
+      }
+
+      if (todosHijos.length > 1) {
+        this.gruposCategorias.push({
+          padre: cat0,
+          hijos: todosHijos
+        });
+      }
+    }
+
+    // Detectar huérfanos
+    const incluidos = new Set<string>();
+    for (const g of this.gruposCategorias) {
+      for (const h of g.hijos) incluidos.add(h._id!);
+    }
+    this.huerfanos = [...nivel0, ...nivel1, ...nivel2]
+      .filter(h => !incluidos.has(h._id!))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
+  onCategoriaChange(): void {
+    this.aplicarFiltros();
+  }
+
+  limpiarFiltros(): void {
+    this.categoriaSeleccionada = '';
+    this.aplicarFiltros();
+  }
+
+  private aplicarFiltros(): void {
+    if (!this.categoriaSeleccionada) {
+      this.favoritosFiltrados = [...this.favoritosOrdenados];
+    } else {
+      this.favoritosFiltrados = this.favoritosOrdenados.filter(fav => {
+        const catId = typeof fav.categoriaId === 'string' 
+          ? fav.categoriaId 
+          : (fav.categoriaId as any)?._id;
+        return catId === this.categoriaSeleccionada;
+      });
+    }
+  }
+
+  getNombreCategoria(catId: string): string {
+    const cat = this.categorias.find(c => c._id === catId);
+    return cat?.nombre ?? 'Categoría desconocida';
+  }
+
+  getEtiquetaCategoriaOption(cat: any): string {
+    if (cat.nivel === 0) {
+      return cat.nombre;
+    }
+    if (cat.nivel === 1) {
+      return `\u00A0\u00A0${cat.nombre}`;
+    }
+    if (cat.nivel === 2) {
+      return `\u00A0\u00A0\u00A0\u00A0${cat.nombre}`;
+    }
+    return cat.nombre;
   }
 
   private refrescarListado(response: FavoritosResponse): void {
@@ -226,10 +348,12 @@ export class FavoritosComponent implements OnInit {
   private aplicarOrdenamiento(): void {
     if (!this.favoritos.length) {
       this.favoritosOrdenados = [];
+      this.favoritosFiltrados = [];
       return;
     }
 
     this.favoritosOrdenados = [...this.favoritos].sort((a, b) => this.compararFavoritos(a, b));
+    this.aplicarFiltros();
   }
 
   private compararFavoritos(a: FavoritoConCantidad, b: FavoritoConCantidad): number {

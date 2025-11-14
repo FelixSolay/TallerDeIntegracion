@@ -123,6 +123,7 @@
     padding: 12px 16px;
     background-color: #E4EFE9;
     border-radius: 10px;
+    gap: 10px;
 }
 
 /* container that holds the left-side readonly fields (DNI and label) */

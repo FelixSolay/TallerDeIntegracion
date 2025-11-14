@@ -18,32 +18,81 @@
         <a routerLink="/productos" class="btn-primary">Descubrir productos</a>
     </div>
 
-    <div *ngIf="!cargando && favoritosOrdenados.length > 0" class="favoritos-controles">
-        <label for="orden-favoritos">Ordenar por</label>
-        <select
-            id="orden-favoritos"
-            class="filtro-select"
-            [(ngModel)]="ordenSeleccionado"
-            (change)="onOrdenChange()">
-            <option value="relevancia">Más relevantes (descuentos)</option>
-            <option value="nombre-asc">Nombre A → Z</option>
-            <option value="nombre-desc">Nombre Z → A</option>
-            <option value="precio-asc">Precio menor a mayor</option>
-            <option value="precio-desc">Precio mayor a menor</option>
-        </select>
-        <span class="orden-info">
-            Orden actual: {{
-                ordenSeleccionado === 'relevancia' ? 'Más relevantes' :
-                ordenSeleccionado === 'nombre-asc' ? 'Nombre A → Z' :
-                ordenSeleccionado === 'nombre-desc' ? 'Nombre Z → A' :
-                ordenSeleccionado === 'precio-asc' ? 'Precio menor a mayor' :
-                'Precio mayor a menor'
-            }}
-        </span>
+    <!-- Filtros -->
+    <div class="filtros-container" *ngIf="!cargando && !errorMensaje && favoritos.length > 0">
+        <div class="filtro-grupo">
+            <label for="categoria-filter">Filtrar por categoría</label>
+            <select 
+                id="categoria-filter" 
+                [(ngModel)]="categoriaSeleccionada" 
+                (change)="onCategoriaChange()"
+                class="filtro-select">
+                <option value="">Todas las categorías</option>
+                <ng-container *ngFor="let grupo of gruposCategorias">
+                    <option 
+                        *ngFor="let cat of grupo.hijos" 
+                        [value]="cat._id"
+                        [ngClass]="'nivel-' + cat.nivel">
+                        {{ getEtiquetaCategoriaOption(cat) }}
+                    </option>
+                </ng-container>
+                <option 
+                    *ngFor="let cat of huerfanos" 
+                    [value]="cat._id"
+                    [ngClass]="'nivel-' + cat.nivel">
+                    {{ getEtiquetaCategoriaOption(cat) }}
+                </option>
+            </select>
+        </div>
+
+        <div class="acciones-filtro">
+            <button 
+                type="button"
+                class="btn-filtrar" 
+                (click)="onCategoriaChange()">
+                Filtrar
+            </button>
+            <button 
+                *ngIf="categoriaSeleccionada !== ''" 
+                class="btn-limpiar-filtros" 
+                (click)="limpiarFiltros()">
+                Limpiar filtros
+            </button>
+        </div>
+
+        <div class="filtro-info">
+            <div class="info-texto">
+                <span *ngIf="categoriaSeleccionada === ''">
+                    Mostrando todos tus favoritos ({{ favoritosFiltrados.length }})
+                </span>
+                <span *ngIf="categoriaSeleccionada !== ''">
+                    {{ favoritosFiltrados.length }} favorito(s) en: <strong>{{ getNombreCategoria(categoriaSeleccionada) }}</strong>
+                </span>
+            </div>
+            <div class="orden-inline">
+                <label for="orden-favoritos">Ordenar por</label>
+                <select
+                    id="orden-favoritos"
+                    class="orden-select"
+                    [(ngModel)]="ordenSeleccionado"
+                    (change)="onOrdenChange()">
+                    <option value="relevancia">Más relevantes (descuentos)</option>
+                    <option value="nombre-asc">Nombre A → Z</option>
+                    <option value="nombre-desc">Nombre Z → A</option>
+                    <option value="precio-asc">Precio menor a mayor</option>
+                    <option value="precio-desc">Precio mayor a menor</option>
+                </select>
+            </div>
+        </div>
     </div>
 
-    <div *ngIf="!cargando && favoritosOrdenados.length > 0" class="productos-grid favoritos-grid">
-        <div *ngFor="let producto of favoritosOrdenados" class="producto-card">
+    <div *ngIf="!cargando && !errorMensaje && categoriaSeleccionada !== '' && favoritosFiltrados.length === 0" class="empty-state">
+        <p>No tienes favoritos en esta categoría.</p>
+        <button class="btn-secondary" (click)="limpiarFiltros()">Ver todos los favoritos</button>
+    </div>
+
+    <div *ngIf="!cargando && favoritosFiltrados.length > 0" class="productos-grid favoritos-grid">
+        <div *ngFor="let producto of favoritosFiltrados" class="producto-card">
             <div class="producto-imagen-container">
                 <img *ngIf="producto.imagen" [src]="producto.imagen" [alt]="producto.nombre" class="producto-imagen">
                 <div *ngIf="!producto.imagen" class="producto-sin-imagen">

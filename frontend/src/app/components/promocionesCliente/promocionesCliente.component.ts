@@ -7,6 +7,7 @@ import { PromocionService, Promocion, PromocionResponse } from '../../services/p
 import { ProductoService, Producto, ProductoResponse } from '../../services/producto.service';
 import { FavoritosService, FavoritosResponse } from '../../services/favoritos.service';
 import { GlobalService } from '../../services/global.service';
+import { CategoriaService, Categoria, CategoriaResponse } from '../../services/categoria.service';
 
 interface PromocionCardItem {
   promocion: Promocion;
@@ -28,10 +29,17 @@ type OrdenPromos = 'relevancia' | 'nombre-asc' | 'nombre-desc' | 'precio-asc' | 
 export class PromocionesClienteComponent implements OnInit, OnDestroy {
   promociones: PromocionCardItem[] = [];
   promocionesOrdenadas: PromocionCardItem[] = [];
+  promocionesFiltradas: PromocionCardItem[] = [];
   cargando = true;
+  cargandoCategorias = true;
   error = '';
   dniCliente = '';
   ordenSeleccionado: OrdenPromos = 'relevancia';
+  categoriaSeleccionada = '';
+  
+  categorias: Categoria[] = [];
+  gruposCategorias: Array<{ padre: Categoria; hijos: Array<Categoria & { disabled?: boolean }> }> = [];
+  huerfanos: Categoria[] = [];
 
   private favoritosIds: Set<string> = new Set();
   private favoritosSub?: Subscription;
@@ -43,6 +51,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
     private productoService: ProductoService,
     private favoritosService: FavoritosService,
     private globalService: GlobalService,
+    private categoriaService: CategoriaService,
     private router: Router
   ) {}
 
@@ -59,6 +68,7 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
       this.cargarFavoritos();
     }
 
+    this.cargarCategorias();
     this.cargarDatos();
   }
 
@@ -251,6 +261,111 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
     });
   }
 
+  private cargarCategorias(): void {
+    this.cargandoCategorias = true;
+    this.categoriaService.obtenerCategorias().subscribe({
+      next: (resp: CategoriaResponse) => {
+        this.categorias = resp.categorias ?? [];
+        this.organizarCategorias();
+        this.cargandoCategorias = false;
+      },
+      error: (err: unknown) => {
+        console.error('Error al cargar categorías:', err);
+        this.cargandoCategorias = false;
+      }
+    });
+  }
+
+  private organizarCategorias(): void {
+    const nivel0 = this.categorias.filter(c => c.nivel === 0).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const nivel1 = this.categorias.filter(c => c.nivel === 1).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const nivel2 = this.categorias.filter(c => c.nivel === 2).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    // Mapas de hijos por padre
+    const hijos1PorPadre0 = new Map<string, Categoria[]>();
+    for (const h of nivel1) {
+      const padreId = (h.categoriaPadreId as unknown as string) || '';
+      if (!hijos1PorPadre0.has(padreId)) hijos1PorPadre0.set(padreId, []);
+      hijos1PorPadre0.get(padreId)!.push(h);
+    }
+
+    const hijos2PorPadre1 = new Map<string, Categoria[]>();
+    for (const h of nivel2) {
+      const padreId = (h.categoriaPadreId as unknown as string) || '';
+      if (!hijos2PorPadre1.has(padreId)) hijos2PorPadre1.set(padreId, []);
+      hijos2PorPadre1.get(padreId)!.push(h);
+    }
+
+    // Construir grupos jerárquicos (todas las categorías son seleccionables)
+    this.gruposCategorias = [];
+    for (const cat0 of nivel0) {
+      const subcats1 = hijos1PorPadre0.get(cat0._id!) || [];
+      const todosHijos: any[] = [cat0]; // Nivel 0 también es seleccionable
+
+      for (const cat1 of subcats1) {
+        todosHijos.push(cat1); // Nivel 1 seleccionable
+        const subcats2 = hijos2PorPadre1.get(cat1._id!) || [];
+        todosHijos.push(...subcats2); // Nivel 2 seleccionable
+      }
+
+      if (todosHijos.length > 1) {
+        this.gruposCategorias.push({
+          padre: cat0,
+          hijos: todosHijos
+        });
+      }
+    }
+
+    // Detectar huérfanos
+    const incluidos = new Set<string>();
+    for (const g of this.gruposCategorias) {
+      for (const h of g.hijos) incluidos.add(h._id!);
+    }
+    this.huerfanos = [...nivel0, ...nivel1, ...nivel2]
+      .filter(h => !incluidos.has(h._id!))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
+  onCategoriaChange(): void {
+    this.aplicarFiltros();
+  }
+
+  limpiarFiltros(): void {
+    this.categoriaSeleccionada = '';
+    this.aplicarFiltros();
+  }
+
+  private aplicarFiltros(): void {
+    if (!this.categoriaSeleccionada) {
+      this.promocionesFiltradas = [...this.promocionesOrdenadas];
+    } else {
+      this.promocionesFiltradas = this.promocionesOrdenadas.filter(item => {
+        const catId = typeof item.producto.categoriaId === 'string' 
+          ? item.producto.categoriaId 
+          : (item.producto.categoriaId as any)?._id;
+        return catId === this.categoriaSeleccionada;
+      });
+    }
+  }
+
+  getNombreCategoria(catId: string): string {
+    const cat = this.categorias.find(c => c._id === catId);
+    return cat?.nombre ?? 'Categoría desconocida';
+  }
+
+  getEtiquetaCategoriaOption(cat: any): string {
+    if (cat.nivel === 0) {
+      return cat.nombre;
+    }
+    if (cat.nivel === 1) {
+      return `\u00A0\u00A0${cat.nombre}`;
+    }
+    if (cat.nivel === 2) {
+      return `\u00A0\u00A0\u00A0\u00A0${cat.nombre}`;
+    }
+    return cat.nombre;
+  }
+
   formatearPrecio(valor: number): string {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(valor);
   }
@@ -298,10 +413,12 @@ export class PromocionesClienteComponent implements OnInit, OnDestroy {
   private aplicarOrdenamiento(): void {
     if (!this.promociones.length) {
       this.promocionesOrdenadas = [];
+      this.promocionesFiltradas = [];
       return;
     }
 
     this.promocionesOrdenadas = [...this.promociones].sort((a, b) => this.compararPromociones(a, b));
+    this.aplicarFiltros();
   }
 
   private compararPromociones(a: PromocionCardItem, b: PromocionCardItem): number {

@@ -1019,7 +1019,8 @@ app.post('/api/customers/:dni/orders/:orderId/repeat', async (req, res) => {
                 continue;
             }
 
-            const precioUnitario = Number((producto.precio ?? orderItem.precioUnitario ?? 0).toFixed(2));
+            // Obtener precio actual considerando promociones activas
+            const precioUnitario = await obtenerPrecioActualConPromocion(producto._id, producto.precio);
 
             if (existingIndex > -1) {
                 customer.carrito.items[existingIndex].cantidad += cantidadAAgregar;
@@ -1988,6 +1989,32 @@ async function actualizarPromocionesPorCambioDePrecio(productId, nuevoPrecio) {
 
     const resultado = await Promocion.bulkWrite(bulkOps, { ordered: false });
     return resultado.modifiedCount || 0;
+}
+
+// Obtener el precio actual de un producto considerando promociones activas
+async function obtenerPrecioActualConPromocion(productId, precioBase) {
+    try {
+        const ahora = new Date();
+        
+        // Buscar promoción activa para este producto
+        const promocionActiva = await Promocion.findOne({
+            productId: productId,
+            activo: true,
+            fechaInicio: { $lte: ahora },
+            fechaFin: { $gte: ahora }
+        }).sort({ fechaInicio: -1 }); // La más reciente si hay varias
+        
+        if (promocionActiva) {
+            // Si hay promoción activa, devolver el precio promocional
+            return Number(promocionActiva.precioPromocional || precioBase);
+        }
+        
+        // Si no hay promoción, devolver el precio base
+        return Number(precioBase);
+    } catch (error) {
+        console.error('Error al obtener precio con promoción:', error);
+        return Number(precioBase);
+    }
 }
 
 // Crear promoción

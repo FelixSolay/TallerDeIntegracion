@@ -235,6 +235,23 @@ textarea.form-control {
   cursor: not-allowed;
 }
 
+/* Estilos para jerarquía de categorías */
+select#categoria optgroup {
+  font-weight: bold;
+  color: #09008C;
+  font-style: normal;
+}
+
+select#categoria option {
+  color: #09008C;
+}
+
+/* Opciones deshabilitadas (nivel 1) */
+select#categoria option:disabled {
+  color: #666;
+  font-weight: 600;
+}
+
 /* Remove spinner from number input */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

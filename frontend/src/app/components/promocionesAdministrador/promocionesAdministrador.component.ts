@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { PromocionService, Promocion, PromocionProductoRef } from '../../services/promocion.service';
 import { ProductoService, Producto } from '../../services/producto.service';
 import { GlobalService } from '../../services/global.service';
+import { ErrorPopupComponent } from '../errorPopup/errorPopup.component';
 
 @Component({
   selector: 'app-promociones-administrador',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ErrorPopupComponent],
   templateUrl: './promocionesAdministrador.component.html',
   styleUrl: './promocionesAdministrador.component.css'
 })
@@ -17,6 +18,8 @@ export class PromocionesAdministradorComponent implements OnInit {
   promociones: Promocion[] = [];
   cargando = true;
   error = '';
+  popup = '';
+  promocionAEliminar: Promocion | null = null;
 
   // Form creación
   form = {
@@ -85,6 +88,53 @@ export class PromocionesAdministradorComponent implements OnInit {
       return;
     }
 
+    // Validar que no haya superposición de fechas
+    const fechaInicio = new Date(this.form.fechaInicio);
+    const fechaFin = new Date(this.form.fechaFin);
+
+    if (fechaFin < fechaInicio) {
+      this.setFormMensaje('error', 'La fecha de fin debe ser posterior a la fecha de inicio.');
+      return;
+    }
+
+    const promocionConflicto = this.promociones.find(promo => {
+      // Solo verificar promociones del mismo producto
+      const promoProductId = typeof promo.productId === 'string' 
+        ? promo.productId 
+        : promo.productId._id;
+      
+      if (promoProductId !== this.form.productId) {
+        return false;
+      }
+
+      // Verificar si las fechas se superponen
+      const promoInicio = new Date(promo.fechaInicio);
+      const promoFin = new Date(promo.fechaFin);
+
+      // Hay superposición si:
+      // - La nueva promoción empieza durante una existente
+      // - La nueva promoción termina durante una existente
+      // - La nueva promoción envuelve completamente a una existente
+      const seSuperponen = (
+        (fechaInicio >= promoInicio && fechaInicio <= promoFin) ||
+        (fechaFin >= promoInicio && fechaFin <= promoFin) ||
+        (fechaInicio <= promoInicio && fechaFin >= promoFin)
+      );
+
+      return seSuperponen;
+    });
+
+    if (promocionConflicto) {
+      const productoNombre = this.nombreProducto(this.form.productId);
+      const conflictoInicio = new Date(promocionConflicto.fechaInicio).toLocaleDateString('es-AR');
+      const conflictoFin = new Date(promocionConflicto.fechaFin).toLocaleDateString('es-AR');
+      this.setFormMensaje(
+        'error', 
+        `Ya existe una promoción para "${productoNombre}" del ${conflictoInicio} al ${conflictoFin}. Las fechas no pueden superponerse.`
+      );
+      return;
+    }
+
     this.promoService.crear({
       productId: this.form.productId,
       tipo: this.form.tipo,
@@ -119,6 +169,52 @@ export class PromocionesAdministradorComponent implements OnInit {
 
   guardarCambios(p: Promocion): void {
     if (!p._id) return;
+
+    // Validar que las fechas sean coherentes
+    const fechaInicio = new Date(p.fechaInicio);
+    const fechaFin = new Date(p.fechaFin);
+
+    if (fechaFin < fechaInicio) {
+      this.popup = 'errorFechas';
+      return;
+    }
+
+    // Validar que no haya superposición con otras promociones del mismo producto
+    const productoId = typeof p.productId === 'string' ? p.productId : p.productId._id;
+    
+    const promocionConflicto = this.promociones.find(promo => {
+      // No comparar consigo misma
+      if (promo._id === p._id) {
+        return false;
+      }
+
+      // Solo verificar promociones del mismo producto
+      const promoProductId = typeof promo.productId === 'string' 
+        ? promo.productId 
+        : promo.productId._id;
+      
+      if (promoProductId !== productoId) {
+        return false;
+      }
+
+      // Verificar si las fechas se superponen
+      const promoInicio = new Date(promo.fechaInicio);
+      const promoFin = new Date(promo.fechaFin);
+
+      const seSuperponen = (
+        (fechaInicio >= promoInicio && fechaInicio <= promoFin) ||
+        (fechaFin >= promoInicio && fechaFin <= promoFin) ||
+        (fechaInicio <= promoInicio && fechaFin >= promoFin)
+      );
+
+      return seSuperponen;
+    });
+
+    if (promocionConflicto) {
+      this.popup = 'errorSuperposicion';
+      return;
+    }
+
     const cambios: Partial<Promocion> = {
       tipo: p.tipo,
       valor: p.valor,
@@ -132,29 +228,36 @@ export class PromocionesAdministradorComponent implements OnInit {
           // Actualizar precios recalculados
           p.precioOriginal = resp.promocion.precioOriginal;
           p.precioPromocional = resp.promocion.precioPromocional;
-          alert('Promoción modificada');
+          this.popup = 'modificadoExito';
         }
       },
       error: (err) => {
         console.error('Error modificando promoción:', err);
-        alert('No se pudo modificar la promoción');
+        this.popup = 'errorModificar';
       }
     });
   }
 
-  eliminar(p: Promocion): void {
-    if (!p._id) return;
-    if (!confirm('¿Eliminar promoción?')) return;
-    this.promoService.eliminar(p._id).subscribe({
+  confirmarEliminar(p: Promocion): void {
+    this.promocionAEliminar = p;
+    this.popup = 'confirmarEliminar';
+  }
+
+  eliminar(): void {
+    if (!this.promocionAEliminar || !this.promocionAEliminar._id) return;
+    
+    this.promoService.eliminar(this.promocionAEliminar._id).subscribe({
       next: (resp) => {
         if (resp.success) {
-          this.promociones = this.promociones.filter(x => x._id !== p._id);
-          alert('Promoción eliminada');
+          this.promociones = this.promociones.filter(x => x._id !== this.promocionAEliminar!._id);
+          this.popup = 'eliminadoExito';
+          this.promocionAEliminar = null;
         }
       },
       error: (err) => {
         console.error('Error eliminando promoción:', err);
-        alert('No se pudo eliminar la promoción');
+        this.popup = 'errorEliminar';
+        this.promocionAEliminar = null;
       }
     });
   }
@@ -200,5 +303,10 @@ export class PromocionesAdministradorComponent implements OnInit {
   resetFormMensaje(): void {
     this.formMensaje = '';
     this.formMensajeTipo = '';
+  }
+
+  closePopup(): void {
+    this.popup = '';
+    this.promocionAEliminar = null;
   }
 }

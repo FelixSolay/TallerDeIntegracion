@@ -21,12 +21,25 @@
       <select 
         id="categoriaPadre" 
         formControlName="categoriaPadreId" 
-        class="form-control"
+        class="form-control categoria-select-jerarquico"
         required>
         <option [value]="null">Seleccionar categoría padre...</option>
-        <option *ngFor="let padre of categoriasPadres" [value]="padre._id">
-          {{ padre.nombre }}
-        </option>
+        <ng-container *ngFor="let item of categoriasPadresJerarquicas">
+          <option 
+            *ngIf="!item.isHeader"
+            [value]="item.categoria._id"
+            [class.nivel-0]="item.indent === 0"
+            [class.nivel-1]="item.indent === 1">
+            {{ item.label }}
+          </option>
+          <option 
+            *ngIf="item.isHeader"
+            [value]="null"
+            disabled
+            class="categoria-header">
+            {{ item.label }}
+          </option>
+        </ng-container>
       </select>
       <small class="form-hint">
         Selecciona la categoría {{ categoriaForm.get('nivel')?.value === 1 ? 'principal' : 'de nivel 1' }} 
@@ -114,6 +127,18 @@
     <div class="form-actions">
       <button type="button" class="btn-secondary" (click)="cancelar()" [disabled]="cargando">
         Cancelar
+      </button>
+      <button 
+        *ngIf="!esEdicion"
+        type="button" 
+        class="btn-success" 
+        (click)="guardarYCrearOtra()"
+        [disabled]="categoriaForm.invalid || cargando || subiendoImagen">
+        <span *ngIf="!cargando && !subiendoImagen">
+          Guardar y crear otra
+        </span>
+        <span *ngIf="subiendoImagen">Subiendo imagen...</span>
+        <span *ngIf="cargando && !subiendoImagen">Guardando...</span>
       </button>
       <button 
         type="submit" 

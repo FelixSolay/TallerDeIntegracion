@@ -73,6 +73,29 @@
   color: rgba(9, 0, 140, 0.45);
 }
 
+/* Estilos para select jerárquico de categorías */
+.categoria-select-jerarquico option.categoria-header {
+  font-weight: 700;
+  font-size: 15px;
+  background-color: #e8f5e9;
+  color: #09008C;
+  padding-left: 8px;
+}
+
+.categoria-select-jerarquico option.nivel-0 {
+  font-weight: 700;
+  font-size: 15px;
+  color: #09008C;
+  padding-left: 8px;
+}
+
+.categoria-select-jerarquico option.nivel-1 {
+  padding-left: 24px;
+  color: #0c4b8f;
+  font-weight: 500;
+  font-size: 14px;
+}
+
 textarea.form-control {
   resize: vertical;
   min-height: 80px;
@@ -165,20 +188,22 @@ textarea.form-control {
 
 .form-actions {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   justify-content: flex-end;
   margin-top: 25px;
   padding-top: 0;
+  flex-wrap: wrap;
 }
 
-.btn-primary, .btn-secondary {
-  padding: 12px 30px;
+.btn-primary, .btn-secondary, .btn-success {
+  padding: 10px 16px;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -193,6 +218,23 @@ textarea.form-control {
 }
 
 .btn-primary:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-success {
+  background-color: #47B20E;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #3a9b0c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(71, 178, 14, 0.3);
+}
+
+.btn-success:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
   transform: none;

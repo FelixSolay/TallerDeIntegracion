@@ -64,6 +64,34 @@
   margin-bottom: 0;
 }
 
+.filtro-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #47B20E;
+  border-radius: 8px;
+  background-color: #E4EFE9;
+  color: #09008C;
+  font-size: 15px;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+.filtro-input:hover {
+  border-color: #47B20E;
+  box-shadow: 0 0 5px rgba(71, 178, 14, 0.2);
+}
+
+.filtro-input:focus {
+  outline: none;
+  border-color: #47B20E;
+  box-shadow: 0 0 8px rgba(71, 178, 14, 0.18);
+  background-color: #E4EFE9;
+}
+
+.filtro-input::placeholder {
+  color: rgba(9, 0, 140, 0.5);
+}
+
 .filtro-select {
   width: 100%;
   padding: 12px;

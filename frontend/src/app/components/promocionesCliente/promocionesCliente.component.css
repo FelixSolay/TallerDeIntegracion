@@ -40,6 +40,199 @@
   margin: 0;
 }
 
+/* Filtros */
+.filtros-container {
+  background-color: #E4EFE9;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  border: 2px solid #47B20E;
+  box-shadow: 0 2px 8px rgba(71, 178, 14, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 250px;
+}
+
+.filtro-grupo label {
+  font-size: 16px;
+  font-weight: bold;
+  color: #47B20E;
+  margin-bottom: 0;
+}
+
+.filtro-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #47B20E;
+  border-radius: 8px;
+  background-color: #E4EFE9;
+  color: #09008C;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+.filtro-select:hover {
+  border-color: #47B20E;
+  box-shadow: 0 0 5px rgba(71, 178, 14, 0.2);
+}
+
+.filtro-select:focus {
+  outline: none;
+  border-color: #47B20E;
+  box-shadow: 0 0 8px rgba(71, 178, 14, 0.18);
+  background-color: #E4EFE9;
+}
+
+.filtro-select option {
+  background-color: #E4EFE9;
+  color: #09008C;
+  padding: 8px;
+}
+
+.filtro-select option.nivel-0 {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.filtro-select option.nivel-1 {
+  padding-left: 20px;
+  font-size: 16px;
+  color: #0c4b8f;
+  font-weight: 500;
+}
+
+.filtro-select option.nivel-2 {
+  padding-left: 32px;
+  font-size: 15px;
+  color: #1d6fa8;
+  font-weight: 500;
+}
+
+.filtro-select optgroup {
+  background-color: #f0f0f0;
+  color: #09008C;
+  font-weight: bold;
+  font-style: normal;
+}
+
+.btn-limpiar-filtros {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  height: fit-content;
+}
+
+.btn-limpiar-filtros:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+.acciones-filtro {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  align-self: flex-end;
+  margin-left: 25px;
+  width: auto;
+  justify-content: flex-end;
+}
+
+.acciones-filtro .btn-filtrar,
+.acciones-filtro .btn-limpiar-filtros {
+  width: auto;
+  white-space: nowrap;
+}
+
+.filtro-info {
+  flex: 1 1 100%;
+  padding: 12px 0 12px 15px;
+  background-color: #E4EFE9;
+  border-left: 4px solid #47B20E;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #09008C;
+  font-weight: 500;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orden-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  padding-right: 0;
+}
+
+.orden-inline label {
+  font-weight: 600;
+  color: #47B20E;
+  white-space: nowrap;
+}
+
+.orden-select {
+  padding: 6px 10px;
+  border: 1px solid #47B20E;
+  border-radius: 6px;
+  background-color: #f6fbf7;
+  color: #09008C;
+  font-size: 13px;
+}
+
+.btn-filtrar {
+  background-color: #47B20E;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  height: fit-content;
+}
+
+.btn-filtrar:hover {
+  background-color: #3a9b0c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(71, 178, 14, 0.3);
+}
+
+.filtro-info strong {
+  color: #09008C;
+  font-weight: 700;
+}
+
 .promos-controls {
   display: flex;
   align-items: center;
@@ -102,6 +295,25 @@
 
 .estado-empty {
   color: #47B20E;
+}
+
+.btn-secondary {
+  background-color: #A81B1B;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 16px;
+}
+
+.btn-secondary:hover {
+  background-color: #8b1616;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(168, 27, 27, 0.3);
 }
 
 .productos-grid {

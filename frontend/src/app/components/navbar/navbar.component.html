@@ -4,9 +4,9 @@
 
 <!--Cliente-->
 <header *ngIf="validRoute && (type == 'cliente')">
-    <a routerLink="/productos"><img src="images/Logo.png" class="logo"></a>
-
-    <ul>
+    <div class="nav-left">
+        <a routerLink="/productos"><img src="images/Logo.png" class="logo"></a>
+        <ul>
         <li class="categories-menu-container" (click)="toggleCategoriesMenu()">
             <a>
                 <span class="menu-icon">☰</span>
@@ -70,31 +70,53 @@
                 <img *ngIf="isMobile && color == 'blanco'" src="images/pagar blanco.png">
             </a>
         </li>
-    </ul>
-    <div class="user-menu-container">
-        <!-- Botón de carrito a la izquierda del nombre (solo clientes) -->
-        <a *ngIf="type === 'cliente'" routerLink="/carrito" class="navbar-cart-button" title="Ir al carrito">
-            <span class="cart-icon">🛒</span>
-            <span class="cart-badge" *ngIf="cartTotal > 0">{{ formatPrice(cartTotal) }}</span>
-        </a>
-        <div class="user" (click)="toggleUserMenu()">
-            <p *ngIf="!isMobile">{{name}}</p>
-            <span class="dropdown-arrow">▼</span>
-        </div>
-        <div class="user-dropdown" *ngIf="showUserMenu">
-            <ng-container *ngIf="type === 'cliente'">
-                <div class="dropdown-item" (click)="goToPedidosEnCurso()">
-                    <span>Pedidos en curso</span>
-                </div>
-                <div class="dropdown-item" (click)="goToHistorialPedidos()">
-                    <span>Historial de pedidos</span>
-                </div>
-            </ng-container>
-            <div class="dropdown-item" (click)="goToProfile()">
-                <span>Modificar perfil</span>
+        </ul>
+    </div>
+
+    <!-- Buscador de productos (centrado) -->
+    <div class="search-container" *ngIf="!isMobile">
+        <input 
+            type="text" 
+            class="search-input" 
+            [(ngModel)]="searchQuery"
+            (keypress)="onSearchKeyPress($event)"
+            placeholder="¿Qué estás buscando?"
+            aria-label="Buscar productos">
+        <button 
+            class="search-button" 
+            (click)="onSearch()"
+            [disabled]="!searchQuery.trim()"
+            aria-label="Buscar">
+            🔍
+        </button>
+    </div>
+
+    <div class="nav-right">
+        <div class="user-menu-container">
+            <!-- Botón de carrito a la izquierda del nombre (solo clientes) -->
+            <a *ngIf="type === 'cliente'" routerLink="/carrito" class="navbar-cart-button" title="Ir al carrito">
+                <span class="cart-icon">🛒</span>
+                <span class="cart-badge" *ngIf="cartTotal > 0">{{ formatPrice(cartTotal) }}</span>
+            </a>
+            <div class="user" (click)="toggleUserMenu()">
+                <p *ngIf="!isMobile">{{name}}</p>
+                <span class="dropdown-arrow">▼</span>
             </div>
-            <div class="dropdown-item logout" (click)="logout()">
-                <span>Cerrar sesión</span>
+            <div class="user-dropdown" *ngIf="showUserMenu">
+                <ng-container *ngIf="type === 'cliente'">
+                    <div class="dropdown-item" (click)="goToPedidosEnCurso()">
+                        <span>Pedidos en curso</span>
+                    </div>
+                    <div class="dropdown-item" (click)="goToHistorialPedidos()">
+                        <span>Historial de pedidos</span>
+                    </div>
+                </ng-container>
+                <div class="dropdown-item" (click)="goToProfile()">
+                    <span>Modificar perfil</span>
+                </div>
+                <div class="dropdown-item logout" (click)="logout()">
+                    <span>Cerrar sesión</span>
+                </div>
             </div>
         </div>
     </div>

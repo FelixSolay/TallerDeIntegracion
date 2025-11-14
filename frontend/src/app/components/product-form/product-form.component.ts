@@ -32,7 +32,7 @@ export class ProductFormComponent implements OnInit {
   productoId: string | null = null;
   categorias: Categoria[] = [];
   padres: Categoria[] = [];
-  grupos: Array<{ padre: Categoria; hijos: Categoria[] }> = [];
+  grupos: Array<{ padre: Categoria; hijos: Array<Categoria & { disabled?: boolean }> }> = [];
   huerfanos: Categoria[] = [];
   private leafCategoryIds: Set<string> = new Set();
 
@@ -64,50 +64,81 @@ export class ProductFormComponent implements OnInit {
     this.categoriaService.obtenerCategorias().subscribe({
       next: (response: CategoriaResponse) => {
         if (response.success && response.categorias) {
-          // Solo considerar subcategorías (nivel 1) como padres y sub-subcategorías (nivel 2) como hijos seleccionables
           const todas = response.categorias;
-          const nivel1 = todas
-            .filter(c => c.nivel === 1)
-            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+          const nivel0 = todas.filter(c => c.nivel === 0).sort((a, b) => a.nombre.localeCompare(b.nombre));
+          const nivel1 = todas.filter(c => c.nivel === 1).sort((a, b) => a.nombre.localeCompare(b.nombre));
           const nivel2 = todas.filter(c => c.nivel === 2);
 
-          // Mapa de hijos por padre (nivel 2 por categoriaPadreId)
-          const hijosPorPadre = new Map<string, Categoria[]>();
+          // Mapa de hijos por padre
+          const hijos1PorPadre0 = new Map<string, Categoria[]>();
+          for (const h of nivel1) {
+            const padreId = (h.categoriaPadreId as unknown as string) || '';
+            if (!hijos1PorPadre0.has(padreId)) hijos1PorPadre0.set(padreId, []);
+            hijos1PorPadre0.get(padreId)!.push(h);
+          }
+
+          const hijos2PorPadre1 = new Map<string, Categoria[]>();
           for (const h of nivel2) {
             const padreId = (h.categoriaPadreId as unknown as string) || '';
-            if (!hijosPorPadre.has(padreId)) hijosPorPadre.set(padreId, []);
-            hijosPorPadre.get(padreId)!.push(h);
+            if (!hijos2PorPadre1.has(padreId)) hijos2PorPadre1.set(padreId, []);
+            hijos2PorPadre1.get(padreId)!.push(h);
           }
-          // Ordenar hijos por nombre
-          for (const arr of hijosPorPadre.values()) {
+
+          // Ordenar hijos
+          for (const arr of hijos1PorPadre0.values()) {
+            arr.sort((a, b) => a.nombre.localeCompare(b.nombre));
+          }
+          for (const arr of hijos2PorPadre1.values()) {
             arr.sort((a, b) => a.nombre.localeCompare(b.nombre));
           }
 
-          // Construir grupos: cada padre con su lista de hijos
-          this.padres = nivel1;
-          this.grupos = nivel1.map(p => ({ padre: p, hijos: hijosPorPadre.get(p._id!) || [] }));
+          // Construir grupos jerárquicos: nivel 0 -> nivel 1 -> nivel 2
+          this.grupos = [];
+          
+          for (const cat0 of nivel0) {
+            const subcats1 = hijos1PorPadre0.get(cat0._id!) || [];
+            
+            // Agregar todas las subcategorías y sub-subcategorías bajo esta categoría principal
+            const hijosCompletos: any[] = [];
+            
+            for (const cat1 of subcats1) {
+              // Agregar nivel 1 como no seleccionable (solo visual)
+              hijosCompletos.push({ ...cat1, disabled: true });
+              
+              // Agregar las sub-subcategorías de esta subcategoría (seleccionables)
+              const subcats2 = hijos2PorPadre1.get(cat1._id!) || [];
+              hijosCompletos.push(...subcats2);
+            }
+            
+            this.grupos.push({
+              padre: cat0,
+              hijos: hijosCompletos
+            });
+          }
 
-          // Detectar huérfanos (nivel 2 sin padre válido)
+          // Detectar huérfanos (categorías sin padre válido)
           const incluidos = new Set<string>();
           for (const g of this.grupos) {
             for (const h of g.hijos) incluidos.add(h._id!);
           }
-          this.huerfanos = nivel2.filter(h => !incluidos.has(h._id!)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+          this.huerfanos = [...nivel1, ...nivel2]
+            .filter(h => !incluidos.has(h._id!))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-          // Mantener referencia plana si se necesita en otra parte
           this.categorias = todas;
 
-          // Preparar set de hojas (solo nivel 2) para el validador
+          // Solo las categorías de nivel 2 son seleccionables
           this.leafCategoryIds = new Set(nivel2.map(c => c._id!));
+          
           const categoriaCtrl = this.productoForm.get('categoriaId');
           if (categoriaCtrl) {
-            const leafOnlyValidator = (control: any) => {
+            const categoriaValidator = (control: any) => {
               const val = control.value as string | null;
-              if (!val) return null; // handled by required
-              if (!this.leafCategoryIds || this.leafCategoryIds.size === 0) return null; // hasta cargar categorías
+              if (!val) return null;
+              if (!this.leafCategoryIds || this.leafCategoryIds.size === 0) return null;
               return this.leafCategoryIds.has(val) ? null : { categoriaNoHoja: true };
             };
-            categoriaCtrl.setValidators([Validators.required, leafOnlyValidator]);
+            categoriaCtrl.setValidators([Validators.required, categoriaValidator]);
             categoriaCtrl.updateValueAndValidity({ emitEvent: false });
           }
         }

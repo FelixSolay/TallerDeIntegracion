@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { CommonModule, NgIf } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { filter } from 'rxjs';
 import { ButtonComponent } from '../button/button.component';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
@@ -10,7 +11,7 @@ import { GlobalService } from '../../services/global.service';
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [ RouterModule, NgIf, CommonModule, ButtonComponent ],
+  imports: [ RouterModule, NgIf, CommonModule, ButtonComponent, FormsModule ],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css'
 })
@@ -25,6 +26,7 @@ export class NavbarComponent implements OnInit {
   showCategoriesMenu: boolean = false;
   categorias: any[] = [];
   cartTotal: number = 0;
+  searchQuery: string = '';
   private categoryMenuTimeout: any;
   
   comprobarRuta() {
@@ -222,6 +224,26 @@ export class NavbarComponent implements OnInit {
     }
     if (!target.closest('.categories-menu-container')) {
       this.closeCategoriesMenu();
+    }
+  }
+
+  onSearch(): void {
+    if (!this.searchQuery.trim()) {
+      return;
+    }
+    
+    // Navegar a productos con el parámetro de búsqueda
+    this.router.navigate(['/productos'], { 
+      queryParams: { search: this.searchQuery.trim() } 
+    });
+    
+    // Limpiar el input después de buscar
+    this.searchQuery = '';
+  }
+
+  onSearchKeyPress(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      this.onSearch();
     }
   }
 

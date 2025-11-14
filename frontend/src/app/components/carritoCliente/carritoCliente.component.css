@@ -221,7 +221,7 @@
   background: #E4EFE9;
   border: 1px solid #ddd;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -265,13 +265,13 @@
   align-items: center;
   gap: 0.5rem;
   background-color: #f8f9fa;
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 8px;
 }
 
 .btn-cantidad {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: none;
   background-color: #09008C;
   color: white;
@@ -282,6 +282,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0.25rem;
 }
 
 .btn-cantidad:hover:not(:disabled) {
@@ -353,7 +354,7 @@
 .carrito-resumen {
   background: linear-gradient(135deg, hwb(244 0% 3%) 100%,#09008C 0% );
   border-radius: 12px;
-  padding: 2rem;
+  padding: 0rem 1rem;
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
@@ -374,7 +375,6 @@
 .resumen-linea.total {
   border-bottom: none;
   border-top: 2px solid rgba(255, 255, 255, 0.5);
-  margin-top: 0.5rem;
   padding-top: 1rem;
 }
 

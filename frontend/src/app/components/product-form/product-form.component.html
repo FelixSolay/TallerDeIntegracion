@@ -12,7 +12,9 @@
         <option [ngValue]="null">Seleccionar categoría...</option>
         <ng-container *ngFor="let grupo of grupos">
           <optgroup [label]="grupo.padre.nombre">
-            <option *ngFor="let h of grupo.hijos" [value]="h._id">{{ h.nombre }}</option>
+            <option *ngFor="let h of grupo.hijos" [value]="h._id" [disabled]="h.disabled">
+              {{ h.disabled ? '\u00A0\u00A0\u00A0\u00A0' + h.nombre : '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0' + h.nombre }}
+            </option>
           </optgroup>
         </ng-container>
         <optgroup *ngIf="huerfanos.length" label="Otras">
@@ -21,7 +23,7 @@
       </select>
       <div *ngIf="productoForm.get('categoriaId')?.touched && productoForm.get('categoriaId')?.errors as errs" class="error-msg">
         <span *ngIf="errs['required']">La categoría es obligatoria</span>
-        <span *ngIf="errs['categoriaNoHoja']">Debes seleccionar una sub-subcategoría (no un padre)</span>
+        <span *ngIf="errs['categoriaNoHoja']">Debes seleccionar una sub-subcategoría (nivel 2)</span>
       </div>
     </div>
     

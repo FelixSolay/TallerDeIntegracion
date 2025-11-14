@@ -105,10 +105,68 @@
           </td>
           <td class="acciones">
             <button class="btn" (click)="guardarCambios(pr)">Guardar</button>
-            <button class="btn danger" (click)="eliminar(pr)">Eliminar</button>
+            <button class="btn danger" (click)="confirmarEliminar(pr)">Eliminar</button>
           </td>
         </tr>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Popups -->
+<app-error-popup 
+  *ngIf="popup == 'modificadoExito'" 
+  text="Promoción modificada" 
+  textAux="Los cambios se guardaron correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="closePopup.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorModificar'" 
+  text="Error al modificar" 
+  textAux="No se pudo modificar la promoción" 
+  [closePopup]="closePopup.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'eliminadoExito'" 
+  text="Promoción eliminada" 
+  textAux="La promoción se eliminó correctamente" 
+  textButton="Aceptar" 
+  [closePopup]="closePopup.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorEliminar'" 
+  text="Error al eliminar" 
+  textAux="No se pudo eliminar la promoción" 
+  [closePopup]="closePopup.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorFechas'" 
+  text="Fechas inválidas" 
+  textAux="La fecha de fin debe ser posterior a la fecha de inicio" 
+  [closePopup]="closePopup.bind(this)">
+</app-error-popup>
+
+<app-error-popup 
+  *ngIf="popup == 'errorSuperposicion'" 
+  text="Fechas superpuestas" 
+  textAux="Ya existe una promoción para este producto en el período seleccionado" 
+  [closePopup]="closePopup.bind(this)">
+</app-error-popup>
+
+<!-- Popup de confirmación de eliminación -->
+<div *ngIf="popup == 'confirmarEliminar'" class="background" (click)="closePopup()">
+  <div class="popup-confirmation" (click)="$event.stopPropagation()">
+    <h3>Confirmar eliminación</h3>
+    <p>¿Estás seguro que deseas eliminar esta promoción?</p>
+    <p class="warning">Esta acción no se puede deshacer.</p>
+    <div class="buttons-container">
+      <button class="btn danger" (click)="eliminar()">Sí, eliminar</button>
+      <button class="btn" (click)="closePopup()">Cancelar</button>
+    </div>
   </div>
 </div>
