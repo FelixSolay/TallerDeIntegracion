@@ -157,7 +157,7 @@
   </button>
 
   <!-- MODAL QR MERCADO PAGO -->
-  <div class="qr-modal" *ngIf="mostrarQR">
+  <div class="qr-modal" *ngIf="mostrarQR && !mensajeExito">
     <div class="qr-modal-content">
       <div class="qr-header">
         <h2>💳 Pago con Mercado Pago</h2>
@@ -214,6 +214,24 @@
       <div class="qr-footer">
         <p>🔒 Pago seguro con Mercado Pago (SANDBOX/TEST)</p>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL PAGO EXITOSO -->
+  <div class="pago-exitoso-modal" *ngIf="mensajeExito && (mensajeExito.includes('confirmado') || mensajeExito.includes('registrado'))">
+    <div class="pago-exitoso-content">
+      <div class="success-icon">✅</div>
+      <h2>¡Compra Confirmada!</h2>
+      <p class="success-message">Tu pedido ha sido registrado exitosamente</p>
+      <div class="success-details">
+        <p><strong>La compra fue procesada correctamente</strong></p>
+        <p *ngIf="metodoPago === 'tarjeta'">El pago con tarjeta ha sido confirmado.</p>
+        <p *ngIf="metodoPago === 'efectivo'">Pagarás en efectivo al recibir el pedido.</p>
+        <p *ngIf="metodoPago === 'saldo'">Se ha descontado de tu saldo a favor.</p>
+      </div>
+      <button class="btn-ver-pedidos" (click)="irAPedidos()">
+        Ver mis pedidos
+      </button>
     </div>
   </div>
 </div>

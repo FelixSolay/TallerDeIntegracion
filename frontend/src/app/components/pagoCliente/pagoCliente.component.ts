@@ -213,57 +213,29 @@ export class PagoClienteComponent implements OnInit {
     this.http.post<any>(`${this.globalService.apiUrl}/api/pagos/generar-qr`, datosQR).subscribe({
       next: (response) => {
         this.generandoQR = false;
-        console.log('📡 Response del backend:', response);
         
         if (response && response.success) {
           // Convertir QR base64 a data URI si es necesario
           let qrCode = response.qrCode || '';
-          console.log('🔍 QR crudo (primeros 100 chars):', qrCode.substring(0, 100));
-          console.log('🔍 Largo del QR:', qrCode.length);
           
           if (qrCode && !qrCode.startsWith('data:')) {
             qrCode = `data:image/png;base64,${qrCode}`;
-            console.log('✅ QR convertido a data URI');
-          } else {
-            console.log('⚠️ QR ya tiene formato correcto o está vacío');
           }
           
           this.codigoQR = qrCode;
           this.preferenceId = response.preferenceId || '';
-          // this.linkPago = response.initPoint || response.checkoutUrl || '';
           this.linkPago = response.sandboxUrl || response.checkoutUrl || response.initPoint || '';
           
-          console.log('📊 Valores asignados:', {
-            codigoQR_length: this.codigoQR.length,
-            preferenceId: this.preferenceId,
-            linkPago: this.linkPago,
-            mostrarQR: true
-          });
-          
           this.mostrarQR = true;
-          this.tiempoExpiracion = 300; // 5 minutos
+          this.tiempoExpiracion = 300;
           this.iniciarContadorExpiracion();
-          
-          // ✅ INICIAR POLLING para verificar pagos
           this.iniciarPollingPago();
-          
-          // Verificar que la imagen esté asignada correctamente
-          console.log('✅ QR generado correctamente');
-          console.log('✅ mostrarQR =', this.mostrarQR);
-          console.log('✅ codigoQR asignado =', !!this.codigoQR);
-          console.log('🔄 Iniciando polling para verificar pagos cada 2 segundos');
-          
-          this.mensajeExito = '✅ QR generado. Escanéalo con tu celular o haz clic en el link.';
         } else {
-          console.error('❌ Response sin success:', response);
           this.mensajeError = response?.message || 'No se pudo generar el QR.';
         }
       },
       error: (error) => {
         this.generandoQR = false;
-        console.error('❌ Error HTTP al generar QR:', error);
-        console.error('Error status:', error?.status);
-        console.error('Error body:', error?.error);
         this.mensajeError = 'Error al generar QR. Intenta nuevamente.';
       }
     });
@@ -295,28 +267,41 @@ export class PagoClienteComponent implements OnInit {
   verificarEstadoPedido(): void {
     if (!this.dni) return;
 
+    console.log('🔍 Polling - Verificando pedidos para DNI:', this.dni);
+
     this.http.get<any>(`${this.globalService.apiUrl}/api/customers/${this.dni}/orders`).subscribe({
       next: (response) => {
+        console.log('📡 Response polling:', response);
+        
         if (response && response.success && response.pedidos && response.pedidos.length > 0) {
-          // Buscar el pedido más reciente
           const pedidoReciente = response.pedidos[0];
+          console.log('📦 Pedido más reciente:', {
+            id: pedidoReciente._id,
+            estado: pedidoReciente.estado,
+            paymentStatus: pedidoReciente.paymentStatus
+          });
 
-          // Si el pedido está PAGADO o paymentStatus es aprobado, cerrar la modal
-          if (pedidoReciente.estado === 'pagado' || pedidoReciente.paymentStatus === 'approved') {
-            console.log('✅ PAGO DETECTADO Y APROBADO', pedidoReciente);
+          // Si el pedido fue pagado con tarjeta (paymentStatus approved), mostrar confirmación
+          if (pedidoReciente.paymentStatus === 'approved') {
+            console.log('✅ PAGO CONFIRMADO - Cerrando modal');
             this.detenerPolling();
             this.mostrarQR = false;
-            this.mensajeExito = '✅ ¡Pago realizado con éxito! Tu pedido ha sido confirmado.';
+            this.procesandoPago = false;
+            this.mensajeError = '';
+            this.mensajeExito = '¡Pago confirmado exitosamente! Tu compra ha sido registrada.';
             
-            // Limpiar carrito después de 3 segundos y redirigir
-            setTimeout(() => {
-              this.router.navigateByUrl('/perfil');
-            }, 3000);
+            this.carritoItems = [];
+            this.total = 0;
+            this.globalService.setCartTotal(0);
+          } else {
+            console.log('⏳ Pedido aún pendiente');
           }
+        } else {
+          console.log('⚠️ No hay pedidos o response vacío');
         }
       },
       error: (error) => {
-        console.warn('Error al verificar estado del pedido:', error);
+        console.error('❌ Error en polling:', error);
       }
     });
   }
@@ -349,14 +334,12 @@ export class PagoClienteComponent implements OnInit {
       next: (response) => {
         this.procesandoPago = false;
         if (response && response.success) {
-          this.mensajeExito = '¡Pago realizado con éxito! Tu pedido quedó en estado pendiente.';
+          // Mostrar modal de éxito
+          this.mensajeExito = '¡Pedido confirmado exitosamente! Tu compra ha sido registrada.';
           this.carritoItems = [];
           this.total = 0;
           this.globalService.setCartTotal(0);
           this.direccionEntrega = direccionNormalizada;
-          setTimeout(() => {
-            this.router.navigateByUrl('/perfil');
-          }, 2000);
         } else {
           this.mensajeError = 'No se pudo procesar el pago. Intenta nuevamente.';
         }
@@ -379,6 +362,11 @@ export class PagoClienteComponent implements OnInit {
         }
       }
     });
+  }
+
+  irAPedidos(): void {
+    // Forzar recarga agregando timestamp
+    this.router.navigateByUrl('/pedidos-en-curso?t=' + Date.now());
   }
 
   cerrarQR(): void {

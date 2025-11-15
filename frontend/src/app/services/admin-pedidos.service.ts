@@ -20,6 +20,8 @@ export interface Pedido {
   items: PedidoItem[];
   total: number;
   estado: 'pendiente' | 'entregado' | 'cancelado';
+  metodoPago?: string;
+  paymentStatus?: string;
   fechaEntrega?: string | null;
   creadoEl?: string;
   actualizadoEl?: string;

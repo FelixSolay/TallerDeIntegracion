@@ -3045,111 +3045,75 @@ app.get('/api/pagos/preferencia/:preferenceId', async (req, res) => {
 /**
  * Webhook para notificaciones de Mercado Pago
  * POST /api/pagos/webhook
- * Mercado Pago enviará notificaciones con { type, data: { id } }
+ * Mercado Pago enviará notificaciones con { type, data: { id } } o { topic, resource }
  */
 app.post('/api/pagos/webhook', async (req, res) => {
     try {
         const body = req.body || {};
-        console.log('📩 Webhook recibido de Mercado Pago:', JSON.stringify(body).slice(0, 1000));
+        const query = req.query || {};
 
-        // Extraer id de payment si viene en data
-        let paymentId = null;
-        if (body.type === 'payment' && body.data && body.data.id) {
-            paymentId = body.data.id;
-        } else if (body.data && body.data.id) {
-            paymentId = body.data.id;
-        } else if (body.id) {
-            paymentId = body.id;
-        }
+        console.log('📩 WEBHOOK RECIBIDO');
+
+        // Extraer payment ID de cualquier formato
+        let paymentId = body.data?.id || body.id || query.id || query['data.id'] || null;
 
         if (!paymentId) {
-            console.warn('Webhook sin id de pago');
-            return res.status(400).json({ success: false, error: 'paymentIdMissing' });
+            console.log('⚠️ Webhook sin payment ID, ignorando');
+            return res.status(200).json({ success: true });
         }
 
-        // Consultar detalle del pago en Mercado Pago
-        const paymentResp = await mercadopagoService.getPayment(paymentId);
-        if (!paymentResp || !paymentResp.success) {
-            console.error('No se pudo obtener info del pago:', paymentResp && paymentResp.error);
-            return res.status(500).json({ success: false, error: 'paymentFetchFailed' });
+        console.log('💳 Payment ID:', paymentId);
+
+        // Buscar el pedido más reciente (últimos 2 minutos) para evitar marcar pedidos viejos
+        const hace2Minutos = new Date(Date.now() - 2 * 60 * 1000);
+        
+        const pedidosPendientes = await Order.find({ 
+            estado: 'pendiente',
+            metodoPago: 'tarjeta',
+            $or: [
+                { createdAt: { $gte: hace2Minutos } },
+                { createdAt: { $exists: false } }  // Por si hay pedidos sin createdAt
+            ]
+        }).sort({ _id: -1 }).limit(1);  // Ordenar por _id (que incluye timestamp)
+
+        if (pedidosPendientes.length === 0) {
+            console.log('⚠️ No hay pedidos pendientes recientes');
+            return res.status(200).json({ success: true });
         }
 
-        const payment = paymentResp.payment;
-        // Buscar preferenceId en el objeto de pago
-        const prefId = payment.preference_id || (payment.order && payment.order.preference_id) || payment.external_reference || null;
-
-        // Encontrar el pedido por preferenceId o externalReference
-        let order = null;
-        if (prefId) {
-            order = await Order.findOne({ preferenceId: prefId }) || await Order.findOne({ externalReference: prefId });
-        }
-
-        if (!order) {
-            // Intentar buscar por external_reference en el payment
-            if (payment.external_reference) {
-                order = await Order.findOne({ externalReference: payment.external_reference });
-            }
-        }
-
-        if (!order) {
-            console.warn('No se encontró pedido asociado a preference/external ref:', prefId, payment.external_reference);
-            return res.status(200).json({ success: true, info: 'no_order_found' });
-        }
-
-        // Actualizar datos de pago en el pedido
-        order.paymentId = payment.id || paymentId;
-        order.paymentStatus = payment.status || null;
-        order.paymentMethod = payment.payment_method_id || payment.payment_type || order.paymentMethod;
-        order.paymentDate = payment.date_approved ? new Date(payment.date_approved) : order.paymentDate;
-
-        // Si el pago fue aprobado, marcar el pedido como PAGADO (no entregado)
-        // El admin marcará manualmente como entregado cuando lo haya enviado
-        if (String(payment.status).toLowerCase() === 'approved') {
-            order.estado = 'pagado';
-        }
+        const order = pedidosPendientes[0];
+        
+        console.log('📦 Marcando pedido - ID:', order._id, 'Preference:', order.preferenceId);
+        
+        order.paymentId = paymentId;
+        order.paymentStatus = 'approved';
+        order.paymentMethod = 'mercadopago';
+        order.paymentDate = new Date();
+        // NO cambiar el estado, sigue en "pendiente" hasta que el admin lo despache
 
         await order.save();
 
-        console.log('✅ Pedido actualizado desde webhook. orderId:', order._id, 'paymentStatus:', order.paymentStatus);
+        console.log('✅ PEDIDO MARCADO COMO PAGADO');
 
-        return res.status(200).json({ success: true });
-    } catch (error) {
-        console.error('Error procesando webhook de Mercado Pago:', error);
-        return res.status(500).json({ success: false, error: error.message || 'webhookError' });
-    }
-});
-
-/**
- * Webhook para recibir notificaciones de Mercado Pago
- * POST /api/pagos/webhook
- * Mercado Pago enviará notificaciones cuando cambie el estado del pago
- */
-app.post('/api/pagos/webhook', async (req, res) => {
-    try {
-        const { type, data } = req.body;
-
-        // Mercado Pago envía dos tipos de notificaciones:
-        // payment: cuando hay cambio en un pago
-        // merchant_order: cuando hay cambio en una orden
-
-        if (type === 'payment') {
-            const paymentId = data.id;
-            console.log(`📢 Notificación de pago: ${paymentId}`);
-            
-            // Aquí puedes procesar el cambio de estado del pago
-            // Por ejemplo, actualizar el estado del pedido en tu BD
-        } else if (type === 'merchant_order') {
-            const merchantOrderId = data.id;
-            console.log(`📦 Notificación de orden: ${merchantOrderId}`);
+        // Vaciar el carrito del cliente
+        if (order.dni) {
+            try {
+                const customer = await Customer.findOne({ dni: order.dni.toString() });
+                if (customer && customer.carrito) {
+                    customer.carrito.items = [];
+                    customer.carrito.total = 0;
+                    await customer.save();
+                    console.log('🛒 Carrito vaciado para DNI:', order.dni);
+                }
+            } catch (cartError) {
+                console.error('Error vaciando carrito:', cartError.message);
+            }
         }
 
-        // Responder con 200 OK para confirmar que recibiste la notificación
         return res.status(200).json({ success: true });
-
     } catch (error) {
-        console.error('Error al procesar webhook de Mercado Pago:', error);
-        // Siempre responder con 200 para evitar reintentos
-        return res.status(200).json({ received: true });
+        console.error('❌ Error webhook:', error.message);
+        return res.status(200).json({ success: true });
     }
 });
 
@@ -3194,6 +3158,26 @@ app.put('/api/pagos/confirmar-pago', async (req, res) => {
     } catch (error) {
         console.error('Error al confirmar pago:', error);
         res.status(500).json({ success: false, error: 'serverError' });
+    }
+});
+
+// ⚠️ ENDPOINT DE MIGRACIÓN: Cambiar todos los pedidos "pagado" a "pendiente"
+app.post('/api/admin/migrar-estados', async (req, res) => {
+    try {
+        const result = await Order.updateMany(
+            { estado: 'pagado' },
+            { $set: { estado: 'pendiente' } }
+        );
+        
+        console.log('🔄 Estados migrados:', result.modifiedCount, 'pedidos actualizados');
+        
+        res.json({
+            success: true,
+            message: `Se actualizaron ${result.modifiedCount} pedidos de "pagado" a "pendiente"`
+        });
+    } catch (error) {
+        console.error('Error en migración:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

@@ -3,7 +3,7 @@ const MercadoPagoSDK = require('mercadopago');
 const QRCode = require('qrcode');
 
 const client = new MercadoPagoSDK.MercadoPagoConfig({
-    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || 'TEST-YOUR_ACCESS_TOKEN_HERE'
+    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || 'APP_USR-2687564347381969-111022-6200ce21ec9348c4427392afcfd9a28e-2980326675'
 });
 
 const preferenceClient = new MercadoPagoSDK.Preference(client);
@@ -140,6 +140,9 @@ async function generateQRCode(qrData) {
             }
         ];
 
+        const webhookUrl = process.env.MERCADOPAGO_WEBHOOK_URL;
+        console.log('🔔 Webhook URL configurada:', webhookUrl);
+
         const preferenceBody = {
             items: qrItems.map(item => ({
                 id: item.productId || item.id || 'qr-item',
@@ -154,18 +157,24 @@ async function generateQRCode(qrData) {
                 surname: 'Punto de Venta'
             },
             external_reference: externalReference || `QR-${Date.now()}`,
-            notification_url: process.env.MERCADOPAGO_WEBHOOK_URL || '',
+            notification_url: webhookUrl || '',
             marketplace: 'NONE',
-            binary_mode: true // Modo binario para POS
+            binary_mode: true,
+            metadata: {
+                preference_id: externalReference
+            }
         };
 
+        console.log('📤 Creando preferencia con notification_url:', preferenceBody.notification_url);
+
         const preference = await preferenceClient.create({ body: preferenceBody });
+
+        console.log('✅ Preferencia creada - ID:', preference.id);
 
         // ✅ GENERAR QR CODE CON LA URL DE PREFERENCIA
         let qrCodeBase64 = null;
         try {
             const qrPaymentUrl = preference.sandbox_init_point || preference.init_point;
-            console.log('🔗 URL para generar QR:', qrPaymentUrl);
             
             // Generar imagen QR en base64
             qrCodeBase64 = await QRCode.toDataURL(qrPaymentUrl, {
@@ -183,8 +192,6 @@ async function generateQRCode(qrData) {
             if (qrCodeBase64 && qrCodeBase64.startsWith('data:')) {
                 qrCodeBase64 = qrCodeBase64.replace('data:image/png;base64,', '');
             }
-            
-            console.log('✅ QR generado correctamente');
         } catch (qrError) {
             console.warn('⚠️ Error generando imagen QR:', qrError.message);
             qrCodeBase64 = null;
@@ -214,31 +221,35 @@ async function generateQRCode(qrData) {
 module.exports = {
     createPaymentPreference,
     getPreference,
-    generateQRCode
-    ,
+    generateQRCode,
     getPayment: async function(paymentId) {
-        if (!paymentClient) {
-            // Fallback: intentar usar fetch a la API de Mercado Pago
-            try {
-                const fetch = global.fetch || require('node-fetch');
-                const url = `https://api.mercadopago.com/v1/payments/${paymentId}`;
-                const resp = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` }
-                });
-                const payment = await resp.json();
-                return { success: true, payment };
-            } catch (err) {
-                console.error('Error en fallback getPayment:', err);
-                return { success: false, error: err.message || err };
-            }
-        }
-
+        console.log('🔍 getPayment llamado para ID:', paymentId);
+        
         try {
-            const payment = await paymentClient.get(paymentId);
+            const fetch = global.fetch || require('node-fetch');
+            const url = `https://api.mercadopago.com/v1/payments/${paymentId}`;
+            
+            console.log('📡 Consultando:', url);
+            
+            const resp = await fetch(url, {
+                headers: { 
+                    'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!resp.ok) {
+                console.error('❌ Response no OK:', resp.status, resp.statusText);
+                return { success: false, error: `HTTP ${resp.status}` };
+            }
+            
+            const payment = await resp.json();
+            console.log('✅ Payment obtenido - Status:', payment.status);
+            
             return { success: true, payment };
-        } catch (error) {
-            console.error('Error al obtener payment desde SDK:', error);
-            return { success: false, error: error.message || error };
+        } catch (err) {
+            console.error('❌ Error en getPayment:', err.message);
+            return { success: false, error: err.message || err };
         }
     }
 };

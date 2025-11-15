@@ -19,6 +19,7 @@ interface Pedido {
   estado: 'pendiente' | 'entregado' | 'cancelado';
   total: number;
   metodoPago?: string;
+  paymentStatus?: string;
   direccionEntrega: string;
   fechaEntrega?: string | null;
   items: PedidoItem[];
@@ -75,6 +76,7 @@ export class PedidosEnCursoComponent implements OnInit {
         this.cargando = false;
         if (response && response.success) {
           const pedidos = (response.pedidos || []) as Pedido[];
+          // Mostrar solo pedidos pendientes (en curso)
           this.pedidos = pedidos.filter((pedido) => pedido.estado === 'pendiente');
         } else {
           this.pedidos = [];
